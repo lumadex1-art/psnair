@@ -39,7 +39,7 @@ export default function ShopPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <div className="text-center">
         <h1 className="font-headline text-3xl font-bold">Upgrade Your Plan</h1>
         <p className="text-muted-foreground">Unlock more claims and features.</p>

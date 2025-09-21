@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { BottomNav } from '@/components/BottomNav';
-import { Toaster } from '@/components/ui/toaster';
 
 export default function MainAppLayout({
   children,
@@ -30,7 +29,7 @@ export default function MainAppLayout({
 
   return (
     <div className="mx-auto flex h-screen max-w-md flex-col bg-background">
-      <main className="flex-1 overflow-y-auto px-4 pt-4 pb-24">{children}</main>
+      <main className="flex-1 overflow-y-auto pt-4 pb-24">{children}</main>
       <BottomNav />
     </div>
   );

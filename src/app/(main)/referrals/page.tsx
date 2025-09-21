@@ -23,7 +23,7 @@ export default function ReferralsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <Card>
         <CardHeader>
           <CardTitle>Your Referral Link</CardTitle>

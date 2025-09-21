@@ -63,7 +63,7 @@ export default function ClaimPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">

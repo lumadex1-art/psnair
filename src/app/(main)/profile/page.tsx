@@ -22,7 +22,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4">
       <div className="flex flex-col items-center space-y-4">
         <Avatar className="h-24 w-24 border-2 border-primary">
           <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person" />
