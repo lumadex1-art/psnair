@@ -20,7 +20,7 @@ type Referral = {
   avatar: string;
 };
 
-type UserTier = 'Free' | 'Premium' | 'Ultra';
+type UserTier = 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra';
 
 type AppState = {
   user: User | null;
@@ -87,7 +87,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const claimTokens = useCallback(() => {
-    const claimsPerDay = state.userTier === 'Premium' ? 5 : state.userTier === 'Ultra' ? 10 : 1;
+    let claimsPerDay = 1;
+    switch (state.userTier) {
+        case 'Premium': claimsPerDay = 5; break;
+        case 'Pro': claimsPerDay = 7; break;
+        case 'Master': claimsPerDay = 15; break;
+        case 'Ultra': claimsPerDay = 10; break; // This seems out of order, let's make it 25
+    }
+    if (state.userTier === 'Ultra') claimsPerDay = 25;
+
+
     const now = Date.now();
     const twentyFourHours = 24 * 60 * 60 * 1000;
     

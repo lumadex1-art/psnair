@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 
-type Tier = 'Free' | 'Premium' | 'Ultra';
+type Tier = 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra';
 
 const plans = [
   {
@@ -16,13 +16,27 @@ const plans = [
     price: '$4.99',
     description: 'For active claimers who want more.',
     features: ['5 Claims per day', 'Priority Support'],
+    isPopular: false,
+  },
+  {
+    name: 'Pro' as Tier,
+    price: '$7.99',
+    description: 'For dedicated users who want to step up.',
+    features: ['7 Claims per day', 'Faster Cooldowns', 'Priority Support'],
     isPopular: true,
   },
   {
+    name: 'Master' as Tier,
+    price: '$14.99',
+    description: 'For serious enthusiasts aiming for the top.',
+    features: ['15 Claims per day', 'Exclusive Tools Access', 'Master Badge'],
+    isPopular: false,
+  },
+  {
     name: 'Ultra' as Tier,
-    price: '$9.99',
+    price: '$24.99',
     description: 'For power users aiming to maximize their earnings.',
-    features: ['10 Claims per day', 'Exclusive Tools Access', 'Priority Support'],
+    features: ['25 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
     isPopular: false,
   },
 ];
