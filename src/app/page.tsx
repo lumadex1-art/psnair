@@ -39,7 +39,7 @@ export default function LoginPage() {
               <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="h-16 w-16"><path d="M10.42 12.61a2.1 2.1 0 1 1 2.97 2.97L7.95 21 4 22l.99-3.95 5.43-5.44Z"/><path d="m13.84 11.2-1.01-1.01"/><path d="M16 4h2l2 2v2"/><path d="M13 22H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h5"/></svg>
             </div>
             <h1 className="font-headline text-4xl font-bold text-foreground">
-              EpsilonDrop
+              psnaidrop
             </h1>
             <p className="text-muted-foreground">
               Claim your daily EPSN tokens.

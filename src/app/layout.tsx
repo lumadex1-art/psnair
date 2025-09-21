@@ -4,7 +4,7 @@ import { Providers } from './providers';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'EpsilonDrop',
+  title: 'psnaidrop',
   description: 'Claim your EPSN tokens daily!',
 };
 

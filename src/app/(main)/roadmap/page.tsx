@@ -42,7 +42,7 @@ export default function RoadmapPage() {
     <div className="space-y-8 px-4">
       <div className="text-center pt-2">
         <h1 className="font-headline text-3xl font-bold">Project Roadmap</h1>
-        <p className="text-muted-foreground">Our vision for the future of EpsilonDrop.</p>
+        <p className="text-muted-foreground">Our vision for the future of psnaidrop.</p>
       </div>
 
       {roadmapSections.map((section, index) => (

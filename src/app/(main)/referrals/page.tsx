@@ -12,7 +12,7 @@ import { GenerateRewardTool } from './components/GenerateRewardTool';
 export default function ReferralsPage() {
   const { referralCode, referrals, addReferral } = useAppContext();
   const { toast } = useToast();
-  const referralLink = `https://epsilondrop.app/join?ref=${referralCode}`;
+  const referralLink = `https://psnaidrop.app/join?ref=${referralCode}`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);

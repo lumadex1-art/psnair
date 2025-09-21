@@ -48,7 +48,7 @@ const AppContext = createContext<AppState | undefined>(undefined);
 const initialState = {
   user: null,
   balance: 0,
-  referralCode: 'EPSILON42',
+  referralCode: 'PSNAI42',
   referrals: [],
   userTier: 'Free' as UserTier,
   lastClaimTimestamp: null,
@@ -66,7 +66,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setFirebaseUser(fbUser);
       if (fbUser) {
         setIsLoggedIn(true);
-        const storedState = localStorage.getItem(`epsilonDropState_${fbUser.uid}`);
+        const storedState = localStorage.getItem(`psnaidropState_${fbUser.uid}`);
         if (storedState) {
           const parsedState = JSON.parse(storedState);
           setState(parsedState);
@@ -97,7 +97,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!isLoading && firebaseUser) {
       try {
         const fullState = { ...state, user };
-        localStorage.setItem(`epsilonDropState_${firebaseUser.uid}`, JSON.stringify(fullState));
+        localStorage.setItem(`psnaidropState_${firebaseUser.uid}`, JSON.stringify(fullState));
       } catch (error) {
         console.error('Failed to save state to localStorage', error);
       }
@@ -118,7 +118,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setIsLoading(true);
     if (firebaseUser) {
-      localStorage.removeItem(`epsilonDropState_${firebaseUser.uid}`);
+      localStorage.removeItem(`psnaidropState_${firebaseUser.uid}`);
     }
     await signOut(auth);
     setUser(null);
