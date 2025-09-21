@@ -4,10 +4,11 @@ import { useAppContext } from '@/contexts/AppContext';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, Coins, Star } from 'lucide-react';
+import { LogOut, Coins, Star, Repeat } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 export default function ProfilePage() {
   const { user, balance, userTier, logout } = useAppContext();
@@ -47,6 +48,13 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
       
+      <Link href="/swap" passHref>
+        <Button variant="secondary" className="w-full">
+            <Repeat className="mr-2 h-4 w-4" />
+            Go to Swap
+        </Button>
+      </Link>
+
       <Card className="bg-secondary/30 border-primary/10">
         <CardHeader>
           <CardTitle className="flex items-center justify-between text-lg">

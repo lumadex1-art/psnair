@@ -8,12 +8,14 @@ import {
   ShoppingBag,
   User,
   Map,
+  Repeat,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/claim', icon: Coins, label: 'Claim' },
   { href: '/referrals', icon: Users, label: 'Referrals' },
+  { href: '/swap', icon: Repeat, label: 'Swap' },
   { href: '/shop', icon: ShoppingBag, label: 'Shop' },
   { href: '/roadmap', icon: Map, label: 'Roadmap' },
   { href: '/profile', icon: User, label: 'Profile' },
@@ -24,7 +26,7 @@ export function BottomNav() {
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-10 mx-auto max-w-md border-t bg-card/95 backdrop-blur-sm">
-      <nav className="grid h-16 grid-cols-5 items-center gap-4 px-4">
+      <nav className="grid h-16 grid-cols-6 items-center gap-2 px-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
