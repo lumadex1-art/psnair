@@ -10,6 +10,7 @@ import React, {
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { auth } from '@/lib/firebase';
 import { User as FirebaseUser, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { secureClaimTokens } from '@/app/actions';
 
 
 type User = {
@@ -37,7 +38,7 @@ type AppState = {
   isLoading: boolean;
   login: (userInfo: Omit<User, 'uid'>) => Promise<void>;
   logout: () => Promise<void>;
-  claimTokens: () => boolean;
+  claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
   addReferral: () => void;
 };
@@ -114,7 +115,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...userInfo,
       };
       setUser(newUser);
-      setState(prevState => ({ ...prevState, user: newUser }));
+      setState(prevState => ({ ...prevState, user: newUser, balance: 0, lastClaimTimestamp: null, userTier: 'Free', referrals: [] }));
       setIsLoggedIn(true);
     } catch (error) {
       console.error("Error signing in anonymously", error);
@@ -135,29 +136,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [firebaseUser]);
 
-  const claimTokens = useCallback(() => {
-    let claimsPerDay = 1;
-    switch (state.userTier) {
-        case 'Premium': claimsPerDay = 5; break;
-        case 'Pro': claimsPerDay = 7; break;
-        case 'Master': claimsPerDay = 15; break;
-        case 'Ultra': claimsPerDay = 25; break;
+ const claimTokens = useCallback(async (): Promise<{success: boolean, message: string}> => {
+    const result = await secureClaimTokens(state.lastClaimTimestamp, state.userTier);
+    
+    if (result.success && result.newTimestamp) {
+        setState((prevState) => ({
+            ...prevState,
+            balance: prevState.balance + 10,
+            lastClaimTimestamp: result.newTimestamp,
+        }));
     }
+    
+    return { success: result.success, message: result.message };
+}, [state.userTier, state.lastClaimTimestamp]);
 
-    const now = Date.now();
-    const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
-    
-    if (state.lastClaimTimestamp && now - state.lastClaimTimestamp < cooldownDuration) {
-      return false;
-    }
-    
-    setState((prevState) => ({
-      ...prevState,
-      balance: prevState.balance + 10, // Claim 10 EPSN
-      lastClaimTimestamp: now,
-    }));
-    return true;
-  }, [state.userTier, state.lastClaimTimestamp]);
 
   const purchasePlan = useCallback((plan: UserTier) => {
     setState((prevState) => ({ ...prevState, userTier: plan }));

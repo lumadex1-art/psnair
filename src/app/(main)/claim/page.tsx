@@ -5,7 +5,7 @@ import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Coins, Zap } from 'lucide-react';
+import { Coins, Zap, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -15,6 +15,7 @@ export default function ClaimPage() {
   const { toast } = useToast();
   const [cooldown, setCooldown] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState('');
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const claimsPerDay = userTier === 'Premium' ? 5 : userTier === 'Pro' ? 7 : userTier === 'Master' ? 15 : userTier === 'Ultra' ? 25 : 1;
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
@@ -48,20 +49,22 @@ export default function ClaimPage() {
     return () => clearInterval(interval);
   }, [lastClaimTimestamp, cooldownDuration]);
 
-  const handleClaim = () => {
-    const success = claimTokens();
-    if (success) {
+  const handleClaim = async () => {
+    setIsClaiming(true);
+    const result = await claimTokens();
+    if (result.success) {
       toast({
         title: 'Success!',
-        description: 'You have claimed 10 EPSN.',
+        description: result.message,
       });
     } else {
       toast({
         variant: 'destructive',
         title: 'Claim not ready',
-        description: 'Please wait for the cooldown to finish.',
+        description: result.message,
       });
     }
+    setIsClaiming(false);
   };
 
   return (
@@ -127,7 +130,7 @@ export default function ClaimPage() {
         <CardFooter className="p-4 bg-secondary/30">
           <Button 
             onClick={handleClaim} 
-            disabled={cooldown > 0} 
+            disabled={cooldown > 0 || isClaiming} 
             className={cn(
               "w-full text-lg font-bold h-14",
               cooldown > 0 
@@ -136,8 +139,12 @@ export default function ClaimPage() {
             )} 
             size="lg"
           >
-            <Zap className="mr-2 h-5 w-5"/>
-            {cooldown > 0 ? 'Claiming...' : 'Claim 10 EPSN Now'}
+            {isClaiming ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
+            ) : (
+                <Zap className="mr-2 h-5 w-5"/>
+            )}
+            {isClaiming ? 'Claiming...' : cooldown > 0 ? 'On Cooldown' : 'Claim 10 EPSN Now'}
           </Button>
         </CardFooter>
       </Card>
