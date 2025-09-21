@@ -64,11 +64,11 @@ export default function ClaimPage() {
 
   return (
     <div className="space-y-6 px-4">
-      <Card>
+      <Card className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground text-center">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <Coins className="h-5 w-5" />
             <span>Your Balance</span>
-            <Coins className="h-5 w-5 text-primary" />
           </CardTitle>
         </CardHeader>
         <CardContent>

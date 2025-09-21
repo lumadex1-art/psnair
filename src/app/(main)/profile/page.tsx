@@ -34,15 +34,15 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground text-center">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base font-medium">
+          <CardTitle className="flex items-center justify-center gap-2 text-base font-medium">
+            <Coins className="h-5 w-5" />
             <span>Balance</span>
-            <Coins className="h-5 w-5 text-muted-foreground" />
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-headline text-2xl font-bold">{balance.toLocaleString()} EPSN</p>
+          <p className="font-headline text-3xl font-bold">{balance.toLocaleString()} EPSN</p>
         </CardContent>
       </Card>
       
