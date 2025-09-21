@@ -8,8 +8,12 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { auth } from '@/lib/firebase';
+import { User as FirebaseUser, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+
 
 type User = {
+  uid: string;
   name: string;
   username: string;
   avatar: string;
@@ -31,8 +35,8 @@ type AppState = {
   lastClaimTimestamp: number | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  login: (user: User) => void;
-  logout: () => void;
+  login: (userInfo: Omit<User, 'uid'>) => Promise<void>;
+  logout: () => Promise<void>;
   claimTokens: () => boolean;
   purchasePlan: (plan: UserTier) => void;
   addReferral: () => void;
@@ -47,44 +51,89 @@ const initialState = {
   referrals: [],
   userTier: 'Free' as UserTier,
   lastClaimTimestamp: null,
-  isLoggedIn: false,
 };
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [state, setState] = useState(initialState);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    try {
-      const storedState = localStorage.getItem('epsilonDropState');
-      if (storedState) {
-        const parsedState = JSON.parse(storedState);
-        setState(parsedState);
+    const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      setFirebaseUser(fbUser);
+      if (fbUser) {
+        // User is signed in.
+        setIsLoggedIn(true);
+        // Load user data from localStorage
+        const storedState = localStorage.getItem(`epsilonDropState_${fbUser.uid}`);
+        if (storedState) {
+          const parsedState = JSON.parse(storedState);
+          setState(parsedState);
+          setUser(parsedState.user);
+        } else {
+           const newUser: User = {
+            uid: fbUser.uid,
+            name: 'Test User',
+            username: '@testuser',
+            avatar: 'https://picsum.photos/seed/user/100/100',
+          };
+          setUser(newUser);
+          setState((s) => ({ ...s, user: newUser }));
+        }
+      } else {
+        // User is signed out.
+        setUser(null);
+        setIsLoggedIn(false);
+        setState(initialState);
       }
-    } catch (error) {
-      console.error('Failed to parse state from localStorage', error);
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!isLoading) {
+    if (!isLoading && firebaseUser) {
       try {
-        localStorage.setItem('epsilonDropState', JSON.stringify(state));
+        const fullState = { ...state, user };
+        localStorage.setItem(`epsilonDropState_${firebaseUser.uid}`, JSON.stringify(fullState));
       } catch (error) {
         console.error('Failed to save state to localStorage', error);
       }
     }
-  }, [state, isLoading]);
+  }, [state, user, firebaseUser, isLoading]);
 
-  const login = useCallback((user: User) => {
-    setState((prevState) => ({ ...prevState, user, isLoggedIn: true }));
+  const login = useCallback(async (userInfo: Omit<User, 'uid'>) => {
+    setIsLoading(true);
+    try {
+      const userCredential = await signInAnonymously(auth);
+      const newUser: User = {
+        uid: userCredential.user.uid,
+        ...userInfo,
+      };
+      setUser(newUser);
+      setState(prevState => ({ ...prevState, user: newUser }));
+      setIsLoggedIn(true);
+    } catch (error) {
+      console.error("Error signing in anonymously", error);
+    } finally {
+        setIsLoading(false);
+    }
   }, []);
 
-  const logout = useCallback(() => {
-    localStorage.removeItem('epsilonDropState');
-    setState({ ...initialState, isLoggedIn: false });
-  }, []);
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    if (firebaseUser) {
+      localStorage.removeItem(`epsilonDropState_${firebaseUser.uid}`);
+    }
+    await signOut(auth);
+    setUser(null);
+    setIsLoggedIn(false);
+    setState(initialState);
+    setIsLoading(false);
+  }, [firebaseUser]);
 
   const claimTokens = useCallback(() => {
     let claimsPerDay = 1;
@@ -108,7 +157,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       lastClaimTimestamp: now,
     }));
     return true;
-  }, [state.lastClaimTimestamp, state.userTier]);
+  }, [state.userTier, state.lastClaimTimestamp]);
 
   const purchasePlan = useCallback((plan: UserTier) => {
     setState((prevState) => ({ ...prevState, userTier: plan }));
@@ -123,7 +172,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
      setState(prevState => ({ ...prevState, referrals: [...prevState.referrals, newReferral]}));
   }, [state.referrals]);
 
-  const value = { ...state, isLoading, login, logout, claimTokens, purchasePlan, addReferral };
+  const value = { ...state, user, isLoggedIn, isLoading, login, logout, claimTokens, purchasePlan, addReferral };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

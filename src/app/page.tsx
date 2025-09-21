@@ -17,8 +17,8 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, router]);
 
-  const handleLogin = () => {
-    login({
+  const handleLogin = async () => {
+    await login({
       name: 'Test User',
       username: '@testuser',
       avatar: 'https://picsum.photos/seed/user/100/100',

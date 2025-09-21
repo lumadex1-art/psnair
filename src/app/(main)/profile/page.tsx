@@ -14,8 +14,8 @@ export default function ProfilePage() {
   const { user, balance, userTier, logout } = useAppContext();
   const router = useRouter();
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     router.replace('/');
   };
 
