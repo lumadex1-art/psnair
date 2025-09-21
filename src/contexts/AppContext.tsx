@@ -92,15 +92,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         case 'Premium': claimsPerDay = 5; break;
         case 'Pro': claimsPerDay = 7; break;
         case 'Master': claimsPerDay = 15; break;
-        case 'Ultra': claimsPerDay = 10; break; // This seems out of order, let's make it 25
+        case 'Ultra': claimsPerDay = 25; break;
     }
-    if (state.userTier === 'Ultra') claimsPerDay = 25;
-
 
     const now = Date.now();
-    const twentyFourHours = 24 * 60 * 60 * 1000;
+    const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
     
-    if (state.lastClaimTimestamp && now - state.lastClaimTimestamp < twentyFourHours / claimsPerDay) {
+    if (state.lastClaimTimestamp && now - state.lastClaimTimestamp < cooldownDuration) {
       return false;
     }
     
