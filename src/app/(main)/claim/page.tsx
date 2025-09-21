@@ -8,10 +8,10 @@ import { Progress } from '@/components/ui/progress';
 import { Coins, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import { Separator } from '@/components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export default function ClaimPage() {
-  const { balance, claimTokens, lastClaimTimestamp, userTier } = useAppContext();
+  const { user, balance, claimTokens, lastClaimTimestamp, userTier } = useAppContext();
   const { toast } = useToast();
   const [cooldown, setCooldown] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState('');
@@ -66,7 +66,20 @@ export default function ClaimPage() {
 
   return (
     <div className="space-y-6 px-4">
-      <div className="text-center pt-2">
+       {user && (
+        <div className="flex items-center gap-4 pt-2">
+          <Avatar className="h-14 w-14 border-2 border-primary/50">
+            <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person" />
+            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="font-semibold text-lg">{user.name}</h2>
+            <p className="text-sm text-muted-foreground">Welcome back!</p>
+          </div>
+        </div>
+      )}
+
+      <div className="text-center">
         <h1 className="font-headline text-3xl font-bold">Claim Rewards</h1>
         <p className="text-muted-foreground">Collect your daily EPSN tokens.</p>
       </div>
