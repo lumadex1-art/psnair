@@ -8,8 +8,8 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signInAnonymously, signOut } from 'firebase/auth';
+import { auth, googleProvider } from '@/lib/firebase';
+import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { secureClaimTokens } from '@/app/actions';
 
 
@@ -36,7 +36,7 @@ type AppState = {
   lastClaimTimestamp: number | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  login: (userInfo: Omit<User, 'uid'>) => Promise<void>;
+  login: () => Promise<void>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
@@ -65,9 +65,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
-        // User is signed in.
         setIsLoggedIn(true);
-        // Load user data from localStorage
         const storedState = localStorage.getItem(`epsilonDropState_${fbUser.uid}`);
         if (storedState) {
           const parsedState = JSON.parse(storedState);
@@ -76,15 +74,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
            const newUser: User = {
             uid: fbUser.uid,
-            name: 'Test User',
-            username: '@testuser',
-            avatar: 'https://picsum.photos/seed/user/100/100',
+            name: fbUser.displayName || 'Test User',
+            username: fbUser.email || '@testuser',
+            avatar: fbUser.photoURL || 'https://picsum.photos/seed/user/100/100',
           };
           setUser(newUser);
-          setState((s) => ({ ...s, user: newUser }));
+          const newState = { ...initialState, user: newUser };
+          setState(newState);
         }
       } else {
-        // User is signed out.
         setUser(null);
         setIsLoggedIn(false);
         setState(initialState);
@@ -106,21 +104,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state, user, firebaseUser, isLoading]);
 
-  const login = useCallback(async (userInfo: Omit<User, 'uid'>) => {
+  const login = useCallback(async () => {
     setIsLoading(true);
     try {
-      const userCredential = await signInAnonymously(auth);
-      const newUser: User = {
-        uid: userCredential.user.uid,
-        ...userInfo,
-      };
-      setUser(newUser);
-      setState(prevState => ({ ...prevState, user: newUser, balance: 0, lastClaimTimestamp: null, userTier: 'Free', referrals: [] }));
-      setIsLoggedIn(true);
+      await signInWithPopup(auth, googleProvider);
+      // onAuthStateChanged will handle the rest
     } catch (error) {
-      console.error("Error signing in anonymously", error);
-    } finally {
-        setIsLoading(false);
+      console.error("Error signing in with Google", error);
+      setIsLoading(false);
     }
   }, []);
 
