@@ -31,10 +31,10 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <Card className="border-none bg-transparent shadow-none">
           <CardHeader className="flex flex-col items-center justify-center text-center">
-            <div className="mb-4 rounded-full bg-primary/10 p-4 text-primary">
-              <Bot className="h-12 w-12" />
+            <div className="mb-4 rounded-full border border-primary/20 bg-gradient-to-br from-primary/20 to-primary/10 p-4 text-primary backdrop-blur-sm">
+              <Bot className="h-16 w-16" />
             </div>
-            <h1 className="font-headline text-3xl font-bold text-foreground">
+            <h1 className="font-headline text-4xl font-bold text-foreground">
               EpsilonDrop
             </h1>
             <p className="text-muted-foreground">
@@ -44,7 +44,7 @@ export default function LoginPage() {
           <CardContent>
             <Button
               onClick={handleLogin}
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              className="w-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
               size="lg"
             >
               Login with Telegram

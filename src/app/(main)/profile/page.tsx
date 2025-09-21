@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { LogOut, Coins, Star } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { user, balance, userTier, logout } = useAppContext();
@@ -23,8 +24,8 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6 px-4">
-      <div className="flex flex-col items-center space-y-4">
-        <Avatar className="h-24 w-24 border-2 border-primary">
+      <div className="flex flex-col items-center space-y-4 pt-4">
+        <Avatar className="h-28 w-28 border-4 border-primary/50">
           <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person" />
           <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
         </Avatar>
@@ -34,27 +35,27 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Card className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground text-center">
+      <Card className="text-center bg-secondary/30 border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2 text-base font-medium">
+          <CardTitle className="flex items-center justify-center gap-2 text-base font-normal text-muted-foreground">
             <Coins className="h-5 w-5" />
             <span>Balance</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-headline text-3xl font-bold">{balance.toLocaleString()} EPSN</p>
+          <p className="font-headline text-4xl font-bold">{balance.toLocaleString()} <span className="text-muted-foreground">EPSN</span></p>
         </CardContent>
       </Card>
       
-      <Card>
+      <Card className="bg-secondary/30 border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between text-base font-medium">
+          <CardTitle className="flex items-center justify-between text-lg">
             <span>Account Tier</span>
-            <Star className="h-5 w-5 text-muted-foreground" />
+            <Star className="h-5 w-5 text-primary" />
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Badge variant={userTier !== 'Free' ? 'default' : 'secondary'} className={userTier !== 'Free' ? 'bg-primary' : ''}>
+          <Badge variant={userTier !== 'Free' ? 'default' : 'secondary'} className={cn(userTier !== 'Free' ? 'bg-primary text-lg' : 'text-base', 'px-4 py-1')}>
             {userTier}
           </Badge>
         </CardContent>

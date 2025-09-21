@@ -63,46 +63,50 @@ export default function ClaimPage() {
   };
 
   return (
-    <div className="space-y-6 px-4">
-      <Card className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground text-center">
+    <div className="space-y-8 px-4">
+      <Card className="text-center bg-secondary/30 border-primary/10">
         <CardHeader>
-          <CardTitle className="flex items-center justify-center gap-2">
+          <CardTitle className="flex items-center justify-center gap-2 text-base font-normal text-muted-foreground">
             <Coins className="h-5 w-5" />
             <span>Your Balance</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="font-headline text-4xl font-bold">
-            {balance.toLocaleString()} EPSN
+          <p className="font-headline text-5xl font-bold text-primary-foreground">
+            {balance.toLocaleString()}
+            <span className="ml-2 text-lg font-medium text-muted-foreground">EPSN</span>
           </p>
         </CardContent>
       </Card>
 
-      <Card className="flex flex-col items-center justify-center p-6 text-center">
-        <CardHeader className="p-0">
+      <Card className="bg-secondary/30 border-primary/10">
+        <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Zap className="h-8 w-8 text-primary" />
           </div>
           <CardTitle>Daily Claim</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Claim 10 EPSN tokens. Your current plan allows {claimsPerDay} claim{claimsPerDay > 1 ? 's' : ''} per day.
+            Your plan allows {claimsPerDay} claim{claimsPerDay > 1 ? 's' : ''} per day.
           </p>
         </CardHeader>
-        <CardContent className="mt-6 w-full p-0">
+        <CardContent className="mt-2 w-full">
           {cooldown > 0 ? (
             <div className="space-y-4">
-              <Button disabled className="w-full" size="lg">
-                Claim
-              </Button>
-              <div className="space-y-2">
-                <Progress value={100 - cooldown} className="h-2" />
-                <p className="font-mono text-sm font-medium text-muted-foreground">
-                  Next claim in: {timeRemaining}
+               <div className="space-y-2 text-center">
+                <p className="font-mono text-3xl font-bold text-foreground">
+                  {timeRemaining}
+                </p>
+                 <p className="text-sm font-medium text-muted-foreground">
+                  Next claim available in
                 </p>
               </div>
+              <Progress value={100 - cooldown} className="h-2" />
+               <Button disabled className="w-full" size="lg">
+                Claim
+              </Button>
             </div>
           ) : (
-            <Button onClick={handleClaim} className="w-full bg-accent text-accent-foreground hover:bg-accent/90" size="lg">
+            <Button onClick={handleClaim} className="w-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90" size="lg">
               Claim 10 EPSN
             </Button>
           )}

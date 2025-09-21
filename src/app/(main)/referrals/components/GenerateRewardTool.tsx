@@ -59,13 +59,13 @@ export function GenerateRewardTool() {
   
   return (
     <>
-      <Card className="bg-gradient-to-br from-primary/80 to-accent/80 text-primary-foreground">
+      <Card className="bg-primary/10 border-primary">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-primary">
             <Award className="h-6 w-6" />
             <span>Referral Milestone Reached!</span>
           </CardTitle>
-          <CardDescription className="text-primary-foreground/80">
+          <CardDescription className="text-primary/80">
             Congratulations! You've invited 5 friends. Generate a special reward to boost your claims.
           </CardDescription>
         </CardHeader>
@@ -73,7 +73,7 @@ export function GenerateRewardTool() {
           <Button
             onClick={handleGenerate}
             disabled={isLoading}
-            className="w-full bg-background text-foreground hover:bg-background/90"
+            className="w-full bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
           >
             {isLoading ? (
               <>
@@ -106,7 +106,7 @@ export function GenerateRewardTool() {
               <h3 className="font-bold text-lg text-primary">{reward.toolName}</h3>
               <p className="text-sm">{reward.toolDescription}</p>
               <div className="flex items-baseline justify-center rounded-md bg-background p-4 text-center">
-                <span className="text-4xl font-bold text-accent">+{reward.claimIncreasePercentage}%</span>
+                <span className="text-4xl font-bold text-primary">+{reward.claimIncreasePercentage}%</span>
                  <span className="ml-2 text-muted-foreground">Claim Increase</span>
               </div>
             </div>
