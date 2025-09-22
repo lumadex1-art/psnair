@@ -195,7 +195,7 @@ export default function ReferralPage() {
                 <div>
                   <p className="text-sm font-medium">Both Get Rewards</p>
                   <p className="text-xs text-muted-foreground">
-                    You get 20 EPSN, they get 10 EPSN bonus
+                    You get 1 EPSN, they get 1 EPSN bonus
                   </p>
                 </div>
               </div>

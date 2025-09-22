@@ -87,7 +87,7 @@ export function ReferralCode() {
           Your Referral Code
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Share your code and earn 20 EPSN for each friend who joins!
+          Share your code and earn 1 EPSN for each friend who joins!
         </p>
       </CardHeader>
       
@@ -161,11 +161,11 @@ export function ReferralCode() {
           <div className="space-y-1 text-sm text-muted-foreground">
             <div className="flex justify-between">
               <span>You earn:</span>
-              <span className="font-semibold text-primary">20 EPSN</span>
+              <span className="font-semibold text-primary">1 EPSN</span>
             </div>
             <div className="flex justify-between">
               <span>Your friend gets:</span>
-              <span className="font-semibold text-primary">10 EPSN</span>
+              <span className="font-semibold text-primary">1 EPSN</span>
             </div>
           </div>
         </div>
