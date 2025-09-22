@@ -132,16 +132,23 @@ export default function ShopPage() {
     }
 
     try {
+      // Get user's auth token
+      const token = await currentUser.getIdToken();
+
       // Create server intent via HTTPS Function
-      const functions = getFunctions();
-      const createIntentFunction = httpsCallable(functions, 'solanaCreateIntent');
-      
-      const intentResult = await createIntentFunction({ planId: plan });
-      const intent = intentResult.data as any;
-      
-      if (!intent?.success) {
-        toast({ variant: 'destructive', title: 'Intent failed', description: intent?.message || 'Unable to create intent' });
-        return;
+      const intentResponse = await fetch('https://solanacreateintentcors-ivtinaswgq-uc.a.run.app', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ planId: plan }),
+      });
+
+      const intent = await intentResponse.json();
+
+      if (!intentResponse.ok) {
+        throw new Error(intent.error || 'Failed to create payment intent');
       }
       
       const lamports: number = intent.amountLamports;
@@ -163,13 +170,19 @@ export default function ShopPage() {
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
       // Confirm payment via HTTPS Function
-      const confirmFunction = httpsCallable(functions, 'solanaConfirm');
-      const confirmResult = await confirmFunction({ transactionId, signature });
-      const confirmData = confirmResult.data as any;
+      const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
+         method: 'POST',
+         headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+         },
+         body: JSON.stringify({ transactionId, signature }),
+      });
+
+      const confirmData = await confirmResponse.json();
       
-      if (!confirmData?.success) {
-        toast({ variant: 'destructive', title: 'Verification failed', description: confirmData?.message || 'Server could not verify payment' });
-        return;
+      if (!confirmResponse.ok) {
+        throw new Error(confirmData.error || 'Server could not verify payment');
       }
 
       // Apply plan locally after successful payment

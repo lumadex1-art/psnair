@@ -16,7 +16,6 @@ export function Providers({ children }: { children: React.ReactNode }) {
   
   const wallets = useMemo(
     () => [
-      // Phantom is now included by default via standard wallet adapters
       new SolflareWalletAdapter({ network }),
     ],
     [network]
