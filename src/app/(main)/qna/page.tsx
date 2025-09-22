@@ -110,7 +110,7 @@ export default function QnAPage() {
             <div className="flex flex-col items-center gap-2">
               <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
                 <Image
-                  src="/epsn.png"
+                  src="/le.png"
                   alt="EPSN Token"
                   width={60}
                   height={60}

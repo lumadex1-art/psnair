@@ -143,8 +143,8 @@ export default function ClaimPage() {
           <CardHeader className="text-center p-8 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="relative mx-auto mb-4">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/20 to-primary/30 rounded-full blur-lg" />
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30 shadow-xl">
-              <Image src='/epsn.png' alt='epsn' width={40} height={40}/>
+              <div className="relative flex h-20 w-20 items-center justify-center">
+                <Image src='/le.png' alt='epsn' width={40} height={40}/>
               </div>
             </div>
             

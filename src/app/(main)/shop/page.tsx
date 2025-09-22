@@ -213,7 +213,7 @@ export default function ShopPage() {
             <div className="flex flex-col items-center gap-2">
               <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
                 <Image
-                  src="/epsn.png"
+                  src="/le.png"
                   alt="EPSN Token"
                   width={60}
                   height={60}
@@ -392,7 +392,7 @@ export default function ShopPage() {
                       <div className="flex items-center gap-3">
                         <div className="relative w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-0.5 shadow-sm">
                           <Image
-                            src="/epsn.png"
+                            src="/le.png"
                             alt="EPSN Token"
                             width={28}
                             height={28}
@@ -489,7 +489,7 @@ export default function ShopPage() {
               <div className="flex flex-col items-center space-y-3 p-4 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50">
                 <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
                   <Image
-                    src="/epsn.png"
+                    src="/le.png"
                     alt="EPSN Token"
                     width={44}
                     height={44}
