@@ -298,7 +298,7 @@ export default function ShopPage() {
                 key={plan.name} 
                 className={cn(
                   'relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl transition-all duration-300 hover:shadow-2xl',
-                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 scale-105 pt-4',
+                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 pt-4', // scale-105
                   isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800'
                 )}
               > 
@@ -338,7 +338,7 @@ export default function ShopPage() {
                             </div>
                           ) : pricing ? (
                             <>
-                              <p className="font-headline text-2xl font-bold text-primary">
+                              <p className="font-headline text-xl font-bold text-primary">
                                 {formatSolAmount(pricing.sol)} SOL
                               </p>
                               <p className="text-xs text-muted-foreground">one-time</p>
@@ -524,5 +524,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
