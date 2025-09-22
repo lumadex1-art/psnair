@@ -69,16 +69,13 @@ export default function ShopPage() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Load pricing data
   const loadPricing = async () => {
     try {
       setIsLoadingPrices(true);
       
-      // Get current SOL price
       const currentSolPrice = await getSolanaPrice();
       setSolPrice(currentSolPrice);
       
-      // Calculate pricing for each plan
       const pricing: Record<Tier, PlanPricing> = {} as Record<Tier, PlanPricing>;
       
       for (const plan of plans) {
@@ -298,7 +295,7 @@ export default function ShopPage() {
                 key={plan.name} 
                 className={cn(
                   'relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl transition-all duration-300 hover:shadow-2xl',
-                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 pt-4', // scale-105
+                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 pt-4',
                   isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800'
                 )}
               > 

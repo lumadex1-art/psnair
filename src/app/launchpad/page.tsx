@@ -5,9 +5,10 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Rocket, ExternalLink } from 'lucide-react';
+import { Rocket, ExternalLink, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 // Presale tokens with external links
 const presaleTokens = [
@@ -73,12 +74,19 @@ export default function LaunchpadPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative">
+      <div className="absolute top-4 left-4 z-20">
+        <Link href="/claim">
+          <Button variant="outline" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(120,119,198,0.1),transparent)] pointer-events-none" />
       
-      <div className="relative z-10 space-y-8 px-4 pb-6">
+      <div className="relative z-10 space-y-8 px-4 pb-6 max-w-2xl mx-auto">
         {/* Header Section */}
-        <div className="text-center space-y-6 pt-6">
+        <div className="text-center space-y-6 pt-16">
           {/* Token Logos Section */}
           <div className="flex items-center justify-center gap-6 mb-6">
             {/* LOBSTER Token */}

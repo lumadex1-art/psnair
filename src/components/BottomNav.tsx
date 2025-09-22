@@ -9,6 +9,7 @@ import {
   User,
   Rocket,
   HelpCircle,
+  Map,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -16,7 +17,7 @@ const navItems = [
   { href: '/claim', icon: Coins, label: 'Claim' },
   { href: '/shop', icon: ShoppingBag, label: 'Shop' },
   { href: '/launchpad', icon: Rocket, label: 'Launchpad' },
-  { href: '/qna', icon: HelpCircle, label: 'QnA' },
+  { href: '/roadmap', icon: Map, label: 'Roadmap' },
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 

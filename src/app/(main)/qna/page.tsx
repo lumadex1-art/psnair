@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -7,6 +8,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronDown, ChevronUp, HelpCircle, Users, Gift, Clock, Share2, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 // QnA Data
 const qnaData = [
@@ -88,10 +91,17 @@ export default function QnAPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative">
+      <div className="absolute top-4 left-4 z-20">
+        <Link href="/claim">
+          <Button variant="outline" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(120,119,198,0.1),transparent)] pointer-events-none" />
       
-      <div className="relative z-10 space-y-8 px-4 pb-6">
+      <div className="relative z-10 space-y-8 px-4 pb-6 max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="text-center space-y-6 pt-6">
           {/* Token Logos Section */}

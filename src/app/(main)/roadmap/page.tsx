@@ -1,7 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, Zap, Clock } from 'lucide-react';
+import { CheckCircle, Zap, Clock, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 const roadmapSections = [
     {
@@ -39,14 +42,21 @@ const roadmapSections = [
 
 export default function RoadmapPage() {
   return (
-    <div className="space-y-8 px-4">
-      <div className="text-center pt-2">
+    <div className="relative min-h-screen space-y-8 px-4 pb-8">
+       <div className="absolute top-4 left-4 z-20">
+        <Link href="/claim">
+          <Button variant="outline" size="icon">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+      <div className="text-center pt-16">
         <h1 className="font-headline text-3xl font-bold">Project Roadmap</h1>
-        <p className="text-muted-foreground">Our vision for the future of EpsilonDrop.</p>
+        <p className="text-muted-foreground">Our vision for the future of psnaidrop.</p>
       </div>
 
       {roadmapSections.map((section, index) => (
-        <Card key={index} className="bg-secondary/30 border-primary/10">
+        <Card key={index} className="bg-secondary/30 border-primary/10 max-w-2xl mx-auto">
           <CardHeader>
             <CardTitle>
                 <Badge variant={section.badgeVariant} className={cn("text-sm", section.badgeClass)}>
