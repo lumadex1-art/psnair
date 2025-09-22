@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -53,7 +54,8 @@ interface PaymentStats {
 
 const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
 
-const GET_PAYMENTS_URL = 'https://getadminpayments-ivtinaswgq-uc.a.run.app';
+// Correct HTTP endpoints from your documentation
+const GET_PAYMENTS_URL = 'https://admingetpayments-ivtinaswgq-uc.a.run.app';
 const APPROVE_PAYMENT_URL = 'https://approveadminpayment-ivtinaswgq-uc.a.run.app';
 
 
@@ -92,6 +94,7 @@ export default function AdminPaymentsPage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
+      // The body is sent directly, without the { data: ... } wrapper
       body: JSON.stringify(body) 
     });
 
@@ -460,3 +463,5 @@ export default function AdminPaymentsPage() {
     </div>
   );
 }
+
+    
