@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,6 +22,11 @@ const GoogleIcon = () => (
 export default function LoginPage() {
   const { login, isLoggedIn } = useAppContext();
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  // Set to `true` to show email/password login, `false` to hide for deployment
+  const showEmailLogin = true;
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -29,6 +36,12 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     await login();
+  };
+
+  const handleEmailLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Here you would add your email/password login logic
+    alert(`Email login is not implemented yet for: ${email}`);
   };
 
   return (
@@ -69,34 +82,74 @@ export default function LoginPage() {
                 <p className="text-sm text-muted-foreground">Sign in to start earning rewards</p>
               </div>
             </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Google Login */}
-            <Button
-              onClick={handleGoogleLogin}
-              variant="outline"
-              className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-200"
-              size="lg"
-            >
-              <GoogleIcon/>
-              <span className="ml-2 font-medium">Continue with Google</span>
-            </Button>
+            <CardContent className="space-y-4">
+              {showEmailLogin && (
+                <form onSubmit={handleEmailLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="name@example.com" 
+                      required 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      required 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  <Button type="submit" className="w-full">Sign In</Button>
+                </form>
+              )}
+              
+              {showEmailLogin && (
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+              )}
 
-            <div className="text-center pt-4 border-t border-border/30">
-              <p className="text-xs text-muted-foreground">
-                🔒 Secure authentication for EpsilonDrop
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+              {/* Google Login */}
+              <Button
+                onClick={handleGoogleLogin}
+                variant="outline"
+                className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-200"
+                size="lg"
+              >
+                <GoogleIcon/>
+                <span className="ml-2 font-medium">Continue with Google</span>
+              </Button>
+
+              <div className="text-center pt-4 border-t border-border/30">
+                <p className="text-xs text-muted-foreground">
+                  🔒 Secure authentication for EpsilonDrop
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         
-        {/* Footer */}
-        <div className="text-center space-y-2 pt-6">
-          <p className="text-xs text-muted-foreground">
-            By signing in, you agree to our Terms of Service
-          </p>
+          {/* Footer */}
+          <div className="text-center space-y-2 pt-6">
+            <p className="text-xs text-muted-foreground">
+              By signing in, you agree to our Terms of Service
+            </p>
+          </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }
