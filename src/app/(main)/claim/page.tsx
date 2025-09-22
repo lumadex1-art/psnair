@@ -22,6 +22,7 @@ export default function ClaimPage() {
 
   const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
+  const rewardPerClaim = 10; // Amount of EPSN per claim
 
   // Conversion rates
   const EPSN_TO_IDR = 500; // 1 EPSN = 500 IDR
@@ -196,10 +197,10 @@ export default function ClaimPage() {
                 </p>
                 <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-3 rounded-lg">
                   <p className="text-sm font-medium text-primary">
-                    💎 Daily Earning Potential: {formatIDR(claimsPerDay * 10 * EPSN_TO_IDR)} IDR
+                    💎 Daily Earning Potential: {formatIDR(claimsPerDay * rewardPerClaim * EPSN_TO_IDR)} IDR
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {claimsPerDay} × 10 EPSN × {EPSN_TO_IDR.toLocaleString()} IDR
+                    {claimsPerDay} × {rewardPerClaim} EPSN × {EPSN_TO_IDR.toLocaleString()} IDR
                   </p>
                 </div>
               </div>
@@ -242,11 +243,11 @@ export default function ClaimPage() {
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm text-green-600/80 dark:text-green-400/80">
-                        Press the button below to collect your 10 EPSN tokens
+                        Press the button below to collect your {rewardPerClaim} EPSN tokens
                       </p>
                       <div className="bg-green-100/50 dark:bg-green-900/30 p-2 rounded-lg">
                         <p className="text-xs font-medium text-green-700 dark:text-green-300">
-                          💰 Reward Value: {formatIDR(10 * EPSN_TO_IDR)} IDR
+                          💰 Reward Value: {formatIDR(rewardPerClaim * EPSN_TO_IDR)} IDR
                         </p>
                       </div>
                     </div>
@@ -284,9 +285,9 @@ export default function ClaimPage() {
                   <>
                     <Zap className="h-6 w-6 animate-pulse"/>
                     <div className="text-center">
-                      <span>Claim 10 EPSN Now</span>
+                      <span>Claim {rewardPerClaim} EPSN Now</span>
                       <div className="text-xs opacity-80">
-                        ({formatIDR(10 * EPSN_TO_IDR)} IDR)
+                        ({formatIDR(rewardPerClaim * EPSN_TO_IDR)} IDR)
                       </div>
                     </div>
                     <div className="ml-2 px-2 py-1 bg-primary-foreground/20 rounded-full">
