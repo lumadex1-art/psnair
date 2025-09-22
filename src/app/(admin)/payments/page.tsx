@@ -22,9 +22,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PLAN_CONFIG } from '@/lib/config';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { getFunctions, httpsCallable, Functions } from 'firebase/functions';
 import { useAppContext } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
+import { app } from '@/lib/firebase'; // Import Firebase app instance
 
 interface Transaction {
   id: string;
@@ -64,21 +65,31 @@ export default function AdminPaymentsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [planFilter, setPlanFilter] = useState('all');
   const { toast } = useToast();
+  
+  // Explicitly initialize functions with region
+  const functions = getFunctions(app, 'us-central1');
 
   // Redirect if not admin
   useEffect(() => {
     if (!isAppLoading && (!user || user.uid !== ADMIN_UID)) {
+      toast({
+        title: "Access Denied",
+        description: "You must be an admin to view this page.",
+        variant: "destructive",
+      });
       router.replace('/');
     }
-  }, [user, isAppLoading, router]);
+  }, [user, isAppLoading, router, toast]);
 
   const loadPaymentData = async () => {
     try {
-      if (!user || user.uid !== ADMIN_UID) return;
+      if (!user || user.uid !== ADMIN_UID) {
+        setLoading(false);
+        return;
+      };
 
       setLoading(true);
       
-      const functions = getFunctions();
       const getPaymentsFunction = httpsCallable(functions, 'adminGetPayments');
       
       const result = await getPaymentsFunction({
@@ -94,31 +105,32 @@ export default function AdminPaymentsPage() {
         setStats(data.stats);
       } else {
         toast({
-          title: "Error",
-          description: data.message || "Failed to load payment data",
+          title: "Error Loading Data",
+          description: data.message || "Failed to load payment data from the server.",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error loading data",
+        title: "Function Call Error",
         description: error.message || "An unexpected error occurred. Check browser console for details.",
         variant: "destructive",
       });
+      console.error("Firebase Functions call failed:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // Load data only when user is confirmed to be an admin
   useEffect(() => {
-    if (user && user.uid === ADMIN_UID) {
+    if (!isAppLoading && user && user.uid === ADMIN_UID) {
       loadPaymentData();
     }
-  }, [statusFilter, planFilter, user]);
+  }, [statusFilter, planFilter, user, isAppLoading]);
 
   const handleApprovePayment = async (transactionId: string) => {
     try {
-      const functions = getFunctions();
       const approveFunction = httpsCallable(functions, 'adminApprovePayment');
       
       const result = await approveFunction({ transactionId, notes: 'Manual approval from admin panel' });
@@ -133,14 +145,14 @@ export default function AdminPaymentsPage() {
       } else {
         toast({
           title: "Approval Failed",
-          description: data.message || "Failed to approve payment",
+          description: data.message || "Failed to approve payment. The transaction might have issues.",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "Failed to approve payment",
+        title: "Error Approving Payment",
+        description: error.message || "Failed to call the approve function.",
         variant: "destructive",
       });
     }
@@ -216,14 +228,15 @@ export default function AdminPaymentsPage() {
   };
 
   const filteredTransactions = transactions.filter(tx => {
-    const matchesSearch = tx.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tx.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         tx.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = tx.userEmail.toLowerCase().includes(searchLower) ||
+                         tx.userName.toLowerCase().includes(searchLower) ||
+                         tx.id.toLowerCase().includes(searchLower);
                          
     return matchesSearch;
   });
 
-  if (isAppLoading || !user || user.uid !== ADMIN_UID) {
+  if (isAppLoading || !user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="text-center">
@@ -232,6 +245,17 @@ export default function AdminPaymentsPage() {
         </div>
       </div>
     );
+  }
+  
+  if (user.uid !== ADMIN_UID) {
+    return (
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="text-center">
+            <AlertTriangle className="h-8 w-8 mx-auto text-destructive" />
+            <p className="mt-4 text-destructive-foreground">Access Denied.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -244,8 +268,8 @@ export default function AdminPaymentsPage() {
             <p className="text-muted-foreground">Monitor and approve plan upgrades</p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={loadPaymentData} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
+            <Button onClick={loadPaymentData} variant="outline" size="sm" disabled={loading}>
+              <RefreshCw className={cn("h-4 w-4 mr-2", loading && "animate-spin")} />
               Refresh Data
             </Button>
             <Button onClick={exportTransactions} variant="outline" size="sm">
@@ -420,4 +444,3 @@ export default function AdminPaymentsPage() {
     </div>
   );
 }
-
