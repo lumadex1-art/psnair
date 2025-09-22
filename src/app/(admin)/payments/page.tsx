@@ -52,7 +52,9 @@ interface PaymentStats {
 }
 
 const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
-// Correct Cloud Functions v2 URLs
+
+// Correct Cloud Functions v2 onCall URLs. Note: These are callable functions, not simple HTTP endpoints.
+// We are using authenticated fetch which simulates the SDK call structure.
 const GET_PAYMENTS_URL = 'https://admingetpayments-ivtinaswgq-uc.a.run.app';
 const APPROVE_PAYMENT_URL = 'https://adminapprovepayment-ivtinaswgq-uc.a.run.app';
 
@@ -93,7 +95,8 @@ export default function AdminPaymentsPage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ data: body }) // Functions v2 expect a 'data' wrapper
+      // v2 onCall functions expect the body to be wrapped in a 'data' object.
+      body: JSON.stringify({ data: body })
     });
 
     if (!response.ok) {
@@ -102,19 +105,19 @@ export default function AdminPaymentsPage() {
     }
 
     const responseData = await response.json();
-    // Functions v2 wrap the response in a 'result' object
+    // v2 onCall functions wrap the response in a 'result' object.
     return responseData.result;
   };
 
   const loadPaymentData = async () => {
-    try {
-      if (!user || user.uid !== ADMIN_UID) {
-        setLoading(false);
-        return;
-      };
+    // Ensure we only load data if an admin is logged in.
+    if (!user || user.uid !== ADMIN_UID) {
+      setLoading(false);
+      return;
+    };
 
-      setLoading(true);
-      
+    setLoading(true);
+    try {
       const data = await authenticatedFetch(GET_PAYMENTS_URL, {
         limit: 100,
         status: statusFilter !== 'all' ? statusFilter : undefined,
