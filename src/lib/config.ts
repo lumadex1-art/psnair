@@ -207,6 +207,6 @@ export const validateConfig = () => {
 };
 
 // Auto-validate in development
-if (DEV_CONFIG.ENABLE_DEBUG) {
-  validateConfig();
-}
+// if (DEV_CONFIG.ENABLE_DEBUG) {
+//   validateConfig();
+// }
