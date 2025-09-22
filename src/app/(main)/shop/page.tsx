@@ -121,24 +121,18 @@ export default function ShopPage() {
   }, []);
 
   const handlePurchase = async (plan: Tier) => {
+    if (!connected || !publicKey) {
+      toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
+      return;
+    }
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ variant: 'destructive', title: 'Not authenticated', description: 'Please log in to make a purchase.' });
+      return;
+    }
+
     try {
-      if (!connected || !publicKey) {
-        toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
-        return;
-      }
-      const currentUser = auth.currentUser;
-      if (!currentUser) {
-        toast({ variant: 'destructive', title: 'Not authenticated', description: 'Please log in to make a purchase.' });
-        return;
-      }
-
-      const pricing = planPricing[plan];
-      if (!pricing || pricing.sol <= 0) {
-        toast({ variant: 'destructive', title: 'Invalid plan price', description: 'This plan cannot be purchased.' });
-        return;
-      }
-
-      // Create server intent via HTTPS Function using httpsCallable
+      // Create server intent via HTTPS Function
       const functions = getFunctions();
       const createIntentFunction = httpsCallable(functions, 'solanaCreateIntent');
       

@@ -6,9 +6,6 @@ import { AppProvider } from '@/contexts/AppContext';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import {
-  PhantomWalletAdapter
-} from '@solana/wallet-adapter-phantom';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -19,7 +16,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   
   const wallets = useMemo(
     () => [
-      new PhantomWalletAdapter(),
+      // Phantom is now included by default via standard wallet adapters
       new SolflareWalletAdapter({ network }),
     ],
     [network]
