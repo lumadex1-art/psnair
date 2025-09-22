@@ -73,6 +73,17 @@ export default function AdminPaymentsPage() {
   }, [user, isAppLoading, router]);
 
   const loadPaymentData = async () => {
+    // NOTE: This function is disabled until the backend is deployed.
+    // It is the source of the CORS error because the 'adminGetPayments' function
+    // is not yet available on the server.
+    toast({
+      title: "Backend Not Deployed",
+      description: "Data loading is disabled. Deploy backend functions to enable.",
+      variant: "destructive"
+    });
+    setLoading(false);
+    return;
+    /*
     try {
       setLoading(true);
       
@@ -106,15 +117,21 @@ export default function AdminPaymentsPage() {
     } finally {
       setLoading(false);
     }
+    */
   };
 
   useEffect(() => {
     if (user && user.uid === ADMIN_UID) {
-      loadPaymentData();
+      // Temporarily disable auto-loading to prevent CORS errors
+      setLoading(false);
+      // loadPaymentData(); // This line will be re-enabled after backend deployment
     }
   }, [statusFilter, planFilter, user]);
 
   const handleApprovePayment = async (transactionId: string) => {
+    toast({ title: "Backend Not Deployed", description: "Approval function is disabled.", variant: "destructive" });
+    return;
+    /*
     try {
       const functions = getFunctions();
       const approveFunction = httpsCallable(functions, 'adminApprovePayment');
@@ -142,10 +159,11 @@ export default function AdminPaymentsPage() {
         variant: "destructive",
       });
     }
+    */
   };
 
   const exportTransactions = () => {
-    // ... (export logic remains the same)
+    toast({ title: "Function Disabled", description: "Export is disabled until backend is deployed." });
   };
 
   const getStatusBadge = (status: string, planUpgraded: boolean) => {
@@ -219,6 +237,21 @@ export default function AdminPaymentsPage() {
             </Button>
           </div>
         </div>
+        
+        {/* Important Notice */}
+        <Card className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800/50">
+            <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
+                    <div>
+                        <p className="font-semibold text-yellow-800 dark:text-yellow-300">Backend Deployment Required</p>
+                        <p className="text-sm text-yellow-700 dark:text-yellow-400/80">
+                            This panel is currently in read-only mode. Please deploy the latest backend functions to enable data loading and approval actions.
+                        </p>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
 
         {/* Stats Cards */}
         {stats && (
