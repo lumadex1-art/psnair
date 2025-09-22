@@ -6,11 +6,14 @@ import * as admin from "firebase-admin";
 admin.initializeApp();
 console.log('✅ Firebase Admin initialized.');
 
-// Import function modules - MINIMAL UNTUK CORS + ADMIN + CLAIM
+// Import function modules
 import {corsCreateSolanaIntent, corsConfirmSolanaPayment} from "./cors-solana";
 import {
-  adminApprovePayment as approvePaymentHandler, 
-  adminGetPendingPayments as getPendingPaymentsHandler
+  adminGetPayments,
+  adminApprovePayment,
+  adminGetPendingPayments,
+  adminGetAnalytics,
+  adminRefundPayment,
 } from "./admin";
 import { claimReward } from "./claim";
 import {onCall} from "firebase-functions/v2/https";
@@ -26,6 +29,9 @@ export const solanaConfirm = onRequest(corsConfirmSolanaPayment);
 // EXPORT FUNGSI CLAIM YANG SUDAH DIPERBAIKI
 export const claim = onCall(claimReward);
 
-// EXPORT FUNGSI ADMIN UNTUK APPROVE MANUAL
-export const adminApprovePayment = onCall(approvePaymentHandler);
-export const adminGetPendingPayments = onCall(getPendingPaymentsHandler);
+// EXPORT FUNGSI ADMIN 
+export const adminGetPayments = onCall(adminGetPayments);
+export const adminApprovePayment = onCall(adminApprovePayment);
+export const adminGetPendingPayments = onCall(adminGetPendingPayments);
+export const adminGetAnalytics = onCall(adminGetAnalytics);
+export const adminRefundPayment = onCall(adminRefundPayment);

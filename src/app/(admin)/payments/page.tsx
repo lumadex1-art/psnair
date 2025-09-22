@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { 
   Search, 
-  Filter, 
   Download, 
   RefreshCw, 
   Eye, 
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PLAN_CONFIG } from '@/lib/config';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 
 interface Transaction {
   id: string;
@@ -59,17 +59,10 @@ export default function AdminPaymentsPage() {
   const [dateFilter, setDateFilter] = useState('all');
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadPaymentData();
-  }, []);
-
   const loadPaymentData = async () => {
     try {
       setLoading(true);
       
-      // Call Firebase Function to get payment data
-      const { httpsCallable } = await import('firebase/functions');
-      const { getFunctions } = await import('firebase/functions');
       const functions = getFunctions();
       const getPaymentsFunction = httpsCallable(functions, 'adminGetPayments');
       
@@ -87,14 +80,14 @@ export default function AdminPaymentsPage() {
       } else {
         toast({
           title: "Error",
-          description: "Failed to load payment data",
+          description: data.message || "Failed to load payment data",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to load payment data",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -102,37 +95,39 @@ export default function AdminPaymentsPage() {
     }
   };
 
+  useEffect(() => {
+    loadPaymentData();
+  }, [statusFilter, planFilter]);
+
   const handleRefreshData = () => {
     loadPaymentData();
   };
 
-  const handleVerifyPayment = async (transactionId: string) => {
+  const handleApprovePayment = async (transactionId: string) => {
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { getFunctions } = await import('firebase/functions');
       const functions = getFunctions();
-      const verifyFunction = httpsCallable(functions, 'adminVerifyPayment');
+      const approveFunction = httpsCallable(functions, 'adminApprovePayment');
       
-      const result = await verifyFunction({ transactionId });
+      const result = await approveFunction({ transactionId });
       const data = result.data as any;
       
       if (data.success) {
         toast({
-          title: "Payment Verified",
-          description: "Payment has been manually verified",
+          title: "Payment Approved",
+          description: "Payment has been approved and plan updated.",
         });
         loadPaymentData(); // Refresh data
       } else {
         toast({
-          title: "Verification Failed",
-          description: data.message || "Failed to verify payment",
+          title: "Approval Failed",
+          description: data.message || "Failed to approve payment",
           variant: "destructive",
         });
       }
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to verify payment",
+        description: error.message || "Failed to approve payment",
         variant: "destructive",
       });
     }
@@ -140,8 +135,6 @@ export default function AdminPaymentsPage() {
 
   const handleRefundPayment = async (transactionId: string) => {
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { getFunctions } = await import('firebase/functions');
       const functions = getFunctions();
       const refundFunction = httpsCallable(functions, 'adminRefundPayment');
       
@@ -173,7 +166,7 @@ export default function AdminPaymentsPage() {
   const exportTransactions = () => {
     const csv = [
       ['Transaction ID', 'User', 'Plan', 'Amount (SOL)', 'Status', 'Date', 'Signature'].join(','),
-      ...transactions.map(tx => [
+      ...filteredTransactions.map(tx => [
         tx.id,
         tx.userEmail,
         tx.planId,
@@ -217,13 +210,26 @@ export default function AdminPaymentsPage() {
   };
 
   const filteredTransactions = transactions.filter(tx => {
+    const txDate = tx.createdAt.toDate();
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const today = new Date();
+      if (dateFilter === 'today') {
+        matchesDate = txDate.toDateString() === today.toDateString();
+      } else if (dateFilter === 'week') {
+        const oneWeekAgo = new Date(today.setDate(today.getDate() - 7));
+        matchesDate = txDate >= oneWeekAgo;
+      } else if (dateFilter === 'month') {
+        const oneMonthAgo = new Date(today.setMonth(today.getMonth() - 1));
+        matchesDate = txDate >= oneMonthAgo;
+      }
+    }
+    
     const matchesSearch = tx.userEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tx.userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          tx.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || tx.status === statusFilter;
-    const matchesPlan = planFilter === 'all' || tx.planId === planFilter;
-    
-    return matchesSearch && matchesStatus && matchesPlan;
+                         
+    return matchesSearch && matchesDate;
   });
 
   if (loading) {
@@ -396,24 +402,35 @@ export default function AdminPaymentsPage() {
                     </div>
                     
                     <div className="flex gap-2">
+                      {tx.status === 'paid' && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="default"
+                            onClick={() => handleApprovePayment(tx.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRefundPayment(tx.id)}
+                          >
+                            <RefreshCw className="h-4 w-4 mr-1" />
+                            Refund
+                          </Button>
+                        </>
+                      )}
                       {tx.status === 'pending' && (
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleVerifyPayment(tx.id)}
+                          onClick={() => handleApprovePayment(tx.id)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          Verify
-                        </Button>
-                      )}
-                      {tx.status === 'paid' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleRefundPayment(tx.id)}
-                        >
-                          <RefreshCw className="h-4 w-4 mr-1" />
-                          Refund
+                          Manual Approve
                         </Button>
                       )}
                     </div>

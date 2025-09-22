@@ -11,14 +11,24 @@ const MERCHANT_WALLET = new PublicKey("Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8v
 
 // Konfigurasi CORS terpusat
 const corsOptions = {
-  origin: [
-    'https://psnchainaidrop.digital',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://localhost:3000',
-    'https://localhost:3001',
-    'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
-  ],
+  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+    // Daftar domain yang diizinkan
+    const allowedOrigins = [
+      'https://psnchainaidrop.digital',
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://localhost:3000',
+      'https://localhost:3001',
+      'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
+    ];
+    
+    // Izinkan jika origin ada di daftar atau jika origin tidak ada (misalnya, dari Postman atau server-side)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: 'GET, POST, OPTIONS',
   allowedHeaders: 'Content-Type, Authorization',
   credentials: true,
@@ -77,6 +87,7 @@ const createSolanaIntentHandler = async (req: Request, res: Response) => {
       currency: "SOL",
       createdAt: now,
       updatedAt: now,
+      planUpgraded: false, // NEW: Field to track fulfillment
     });
 
     res.status(200).json({
@@ -86,6 +97,7 @@ const createSolanaIntentHandler = async (req: Request, res: Response) => {
       merchantWallet: MERCHANT_WALLET.toBase58(),
     });
   } catch (error: any) {
+    console.error("Create payment intent error:", error);
     if (error.code === 'auth/id-token-expired') {
         res.status(401).json({ error: 'Token expired, please re-authenticate' });
     } else {
@@ -134,40 +146,22 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
 
     const signatureStatus = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
     if (!signatureStatus.value || signatureStatus.value.err || !signatureStatus.value.confirmationStatus) {
-      res.status(400).json({ error: 'Transaction verification failed' });
+      res.status(400).json({ error: 'Transaction verification failed on-chain' });
       return;
     }
 
-    // --- PERBAIKAN UTAMA: Perbarui plan pengguna dalam satu transaksi ---
-    await db.runTransaction(async (transaction) => {
-      // 1. Update status transaksi
-      transaction.update(transactionRef, {
+    // --- MODIFICATION: Just update transaction status to 'paid'. Do NOT upgrade plan. ---
+    await transactionRef.update({
         status: "paid",
         providerRef: signature,
         confirmedAt: admin.firestore.Timestamp.now(),
         updatedAt: admin.firestore.Timestamp.now(),
-      });
-
-      // 2. Get data plan yang dibeli
-      const planData = PlanUtils.getPlanById(transactionData.planId);
-      if (!planData) {
-        throw new Error(`Plan not found: ${transactionData.planId}`);
-      }
-
-      // 3. Update dokumen pengguna dengan plan baru
-      const userRef = db.collection("users").doc(uid);
-      transaction.update(userRef, {
-        "plan.id": transactionData.planId,
-        "plan.maxDailyClaims": planData.maxDailyClaims,
-        "plan.upgradedAt": admin.firestore.Timestamp.now(),
-        updatedAt: admin.firestore.Timestamp.now(),
-      });
     });
 
 
     res.status(200).json({
       success: true,
-      message: "Payment confirmed and plan updated!",
+      message: "Payment confirmed. Pending admin approval.",
       planId: transactionData.planId,
     });
   } catch (error: any) {
