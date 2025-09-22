@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -374,9 +375,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Fallback to local update if Firestore fails
           setState((prevState) => {
+             const fallbackReward = prevState.userTier === 'Free' ? 1 : 10;
             const newState = {
               ...prevState,
-              balance: prevState.balance + rewardAmount,
+              balance: prevState.balance + fallbackReward,
               lastClaimTimestamp: Date.now(),
             };
             
@@ -410,5 +412,3 @@ export function useAppContext() {
   }
   return context;
 }
-
-    
