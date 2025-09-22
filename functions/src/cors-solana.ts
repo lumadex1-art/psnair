@@ -138,19 +138,40 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
       return;
     }
 
-    await transactionRef.update({
-      status: "paid",
-      providerRef: signature,
-      confirmedAt: admin.firestore.Timestamp.now(),
-      updatedAt: admin.firestore.Timestamp.now(),
+    // --- PERBAIKAN UTAMA: Perbarui plan pengguna dalam satu transaksi ---
+    await db.runTransaction(async (transaction) => {
+      // 1. Update status transaksi
+      transaction.update(transactionRef, {
+        status: "paid",
+        providerRef: signature,
+        confirmedAt: admin.firestore.Timestamp.now(),
+        updatedAt: admin.firestore.Timestamp.now(),
+      });
+
+      // 2. Get data plan yang dibeli
+      const planData = PlanUtils.getPlanById(transactionData.planId);
+      if (!planData) {
+        throw new Error(`Plan not found: ${transactionData.planId}`);
+      }
+
+      // 3. Update dokumen pengguna dengan plan baru
+      const userRef = db.collection("users").doc(uid);
+      transaction.update(userRef, {
+        "plan.id": transactionData.planId,
+        "plan.maxDailyClaims": planData.maxDailyClaims,
+        "plan.upgradedAt": admin.firestore.Timestamp.now(),
+        updatedAt: admin.firestore.Timestamp.now(),
+      });
     });
+
 
     res.status(200).json({
       success: true,
-      message: "Payment confirmed",
+      message: "Payment confirmed and plan updated!",
       planId: transactionData.planId,
     });
   } catch (error: any) {
+    console.error("Confirm payment error:", error);
     if (error.code === 'auth/id-token-expired') {
         res.status(401).json({ error: 'Token expired, please re-authenticate' });
     } else {

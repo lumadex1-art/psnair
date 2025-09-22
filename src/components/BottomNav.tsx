@@ -10,10 +10,12 @@ import {
   Rocket,
   HelpCircle,
   Map,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAppContext } from '@/contexts/AppContext';
 
-const navItems = [
+const baseNavItems = [
   { href: '/claim', icon: Coins, label: 'Claim' },
   { href: '/shop', icon: ShoppingBag, label: 'Shop' },
   { href: '/launchpad', icon: Rocket, label: 'Launchpad' },
@@ -21,8 +23,18 @@ const navItems = [
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
+const adminNavItem = { href: '/admin', icon: Shield, label: 'Admin' };
+
+// UID Admin - Ganti dengan UID admin Anda yang sebenarnya
+const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
+
 export function BottomNav() {
   const pathname = usePathname();
+  const { user } = useAppContext();
+  
+  const isAdmin = user?.uid === ADMIN_UID;
+  const navItems = isAdmin ? [...baseNavItems.slice(0, 5), adminNavItem] : baseNavItems;
+
 
   return (
     <footer className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-w-md">
@@ -30,7 +42,10 @@ export function BottomNav() {
       <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/90 to-transparent backdrop-blur-xl border-t border-border/50" />
       
       {/* Navigation content */}
-      <nav className="relative grid h-20 grid-cols-5 items-center gap-1 px-2 py-2">
+      <nav className={cn(
+        "relative grid h-20 items-center gap-1 px-2 py-2",
+        isAdmin ? 'grid-cols-6' : 'grid-cols-5'
+      )}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -40,19 +55,24 @@ export function BottomNav() {
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 rounded-xl p-1.5 transition-all duration-200 hover:scale-105',
                 isActive 
-                  ? 'text-primary' 
+                  ? item.href === '/admin' ? 'text-red-500' : 'text-primary' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
               )}
             >
               {/* Active indicator */}
               {isActive && (
-                <div className="absolute inset-0 rounded-xl bg-primary/10 border border-primary/20" />
+                <div className={cn(
+                  "absolute inset-0 rounded-xl border",
+                  item.href === '/admin' 
+                    ? 'bg-red-500/10 border-red-500/20' 
+                    : 'bg-primary/10 border-primary/20'
+                )} />
               )}
               
               {/* Icon with active state */}
               <div className={cn(
                 'relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200',
-                isActive && 'bg-primary/15 shadow-lg shadow-primary/25'
+                isActive && (item.href === '/admin' ? 'bg-red-500/15 shadow-lg shadow-red-500/25' : 'bg-primary/15 shadow-lg shadow-primary/25')
               )}>
                 <item.icon className={cn(
                   'transition-all duration-200',
@@ -61,7 +81,10 @@ export function BottomNav() {
                 
                 {/* Active dot indicator */}
                 {isActive && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <div className={cn(
+                    "absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse",
+                    item.href === '/admin' ? 'bg-red-500' : 'bg-primary'
+                  )} />
                 )}
               </div>
               
