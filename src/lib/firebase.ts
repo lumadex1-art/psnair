@@ -13,33 +13,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:722448916409:web:871521cf99c094f6b6e068"
 };
 
-// Validate Firebase config
-const isProduction = process.env.NODE_ENV === 'production';
-const hasEnvVars = process.env.NEXT_PUBLIC_FIREBASE_API_KEY; // Check if any env var exists
-
-if (isProduction && !hasEnvVars) {
-  // In production, require environment variables
-  throw new Error('🚨 PRODUCTION ERROR: Firebase environment variables are required. Please set NEXT_PUBLIC_FIREBASE_* variables.');
-}
-
-// Validate all required config exists
-const requiredConfig = [
-  firebaseConfig.apiKey,
-  firebaseConfig.authDomain,
-  firebaseConfig.projectId,
-  firebaseConfig.storageBucket,
-  firebaseConfig.messagingSenderId,
-  firebaseConfig.appId
-];
-
-if (requiredConfig.some(config => !config)) {
-  throw new Error('🚨 Firebase configuration incomplete. Missing required configuration values.');
-}
-
-if (process.env.NODE_ENV === 'development') {
-  console.log('🔧 Firebase configuration loaded for development');
-}
-
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
