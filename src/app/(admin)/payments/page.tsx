@@ -125,16 +125,10 @@ export default function AdminPaymentsPage() {
 
   // Load data only when user is confirmed to be an admin
   useEffect(() => {
-    // Logging for debugging purposes
-    console.log('[Admin Page] Auth state check: isAppLoading:', isAppLoading, 'User:', user);
-
     if (!isAppLoading && user && user.uid === ADMIN_UID) {
-      console.log('[Admin Page] Admin confirmed. Loading payment data...');
       loadPaymentData();
-    } else {
-       console.log('[Admin Page] Conditions not met to load payment data.');
     }
-  }, [statusFilter, planFilter, user, isAppLoading]); // Dependencies array is correct
+  }, [statusFilter, planFilter, user, isAppLoading]);
 
   const handleApprovePayment = async (transactionId: string) => {
     try {
@@ -156,7 +150,7 @@ export default function AdminPaymentsPage() {
           variant: "destructive",
         });
       }
-    } catch (error: any) => {
+    } catch (error: any) {
       toast({
         title: "Error Approving Payment",
         description: error.message || "Failed to call the approve function.",
