@@ -330,16 +330,16 @@ export const adminApprovePayment = async (request: CallableRequest<ApprovePaymen
       };
     }
     
-    if (transactionData.status !== "pending") {
+    // Validate transaction is in a state that can be approved (e.g., 'paid' but not yet fulfilled)
+    if (transactionData.status !== "paid") {
       throw new HttpsError("failed-precondition", 
-        `Cannot approve transaction with status: ${transactionData.status}`);
+        `Cannot approve transaction with status: ${transactionData.status}. Must be 'paid'.`);
     }
 
     // Update transaction and user plan in atomic transaction
     await db.runTransaction(async (transaction) => {
       // Update transaction status
       transaction.update(transactionRef, {
-        status: "paid", // Ensure status is 'paid'
         planUpgraded: true, // Mark that the plan has been granted
         providerRef: signature || transactionData.providerRef || "manual-approval",
         confirmedAt: transactionData.confirmedAt || admin.firestore.Timestamp.now(),

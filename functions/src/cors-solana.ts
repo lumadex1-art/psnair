@@ -23,7 +23,7 @@ const corsOptions = {
     ];
     
     // Izinkan jika origin ada di daftar atau jika origin tidak ada (misalnya, dari Postman atau server-side)
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (!origin || allowedOrigins.includes(origin) || origin.includes('firebase-studio') || origin.includes('cloudworkstations.dev')) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));

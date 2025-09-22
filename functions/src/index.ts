@@ -1,5 +1,6 @@
 import {onRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
+import {onCall} from "firebase-functions/v2/https";
 
 // Initialize Firebase Admin. It will automatically use the service account credentials
 // provided by the Firebase environment.
@@ -16,7 +17,8 @@ import {
   adminRefundPayment,
 } from "./admin";
 import { claimReward } from "./claim";
-import {onCall} from "firebase-functions/v2/https";
+import { processReferral, getReferralStats, validateReferralCode } from "./referral";
+
 
 // EXPORT FUNGSI CORS YANG DIBUTUHKAN
 export const solanaCreateIntentCors = onRequest(corsCreateSolanaIntent);
@@ -30,4 +32,13 @@ export const solanaConfirm = onRequest(corsConfirmSolanaPayment);
 export const claim = onCall(claimReward);
 
 // EXPORT FUNGSI ADMIN 
-export { adminGetPayments, adminApprovePayment, adminGetPendingPayments, adminGetAnalytics, adminRefundPayment } from './admin';
+export const adminGetPayments = onCall(adminGetPayments);
+export const adminApprovePayment = onCall(adminApprovePayment);
+export const adminGetPendingPayments = onCall(adminGetPendingPayments);
+export const adminGetAnalytics = onCall(adminGetAnalytics);
+export const adminRefundPayment = onCall(adminRefundPayment);
+
+// EXPORT FUNGSI REFERRAL
+export const referralProcess = onCall(processReferral);
+export const referralStats = onCall(getReferralStats);
+export const referralValidate = onCall(validateReferralCode);
