@@ -15,6 +15,7 @@ import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from
 import Image from 'next/image';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PLAN_CONFIG } from '@/lib/config';
+import { auth } from '@/lib/firebase';
 
 type Tier = keyof typeof PLAN_CONFIG.PRICES;
 
@@ -124,6 +125,11 @@ export default function ShopPage() {
         toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
         return;
       }
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        toast({ variant: 'destructive', title: 'Not authenticated', description: 'Please log in to make a purchase.' });
+        return;
+      }
 
       const pricing = planPricing[plan];
       if (!pricing || pricing.sol <= 0) {
@@ -135,7 +141,9 @@ export default function ShopPage() {
       const functions = getFunctions();
       const createIntentFunction = httpsCallable(functions, 'solanaCreateIntent');
       
-      const intentResult = await createIntentFunction({ planId: plan });
+      // The payload for a callable function must be an object.
+      // The `planId` is expected directly in the body by the backend function.
+      const intentResult = await createIntentFunction({ data: { planId: plan } });
       const intent = intentResult.data as any;
       
       if (!intent?.success) {
@@ -163,7 +171,7 @@ export default function ShopPage() {
 
       // Confirm payment via HTTPS Function
       const confirmFunction = httpsCallable(functions, 'solanaConfirm');
-      const confirmResult = await confirmFunction({ transactionId, signature });
+      const confirmResult = await confirmFunction({ data: { transactionId, signature } });
       const confirmData = confirmResult.data as any;
       
       if (!confirmData?.success) {
