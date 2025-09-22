@@ -8,9 +8,27 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth, googleProvider } from '@/lib/firebase';
+import { auth, googleProvider, db } from '@/lib/firebase';
 import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { secureClaimTokens } from '@/app/actions';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { clearAllDummyData, isDummyUser } from '@/utils/clearDummyData';
+import { migrateUserBalanceToFirestore } from '@/utils/migrateBalance';
+import { printBalanceDebug } from '@/utils/balanceDebug';
+import { calculateUserBalance, verifyBalanceConsistency } from '@/utils/balanceCalculator';
+import { generateUniqueReferralCode } from '@/utils/referralCode';
+
+// Helper functions for real user data
+const generateAvatarUrl = (name: string): string => {
+  // Use DiceBear API for consistent, beautiful avatars based on name
+  const cleanName = encodeURIComponent(name.trim());
+  return `https://api.dicebear.com/7.x/initials/svg?seed=${cleanName}&backgroundColor=6366f1&textColor=ffffff`;
+};
+
+const generateReferralCode = (uid: string): string => {
+  // Generate referral code from user ID
+  const hash = uid.slice(-8).toUpperCase();
+  return `EPS${hash}`;
+};
 
 
 type User = {
@@ -27,6 +45,15 @@ type Referral = {
 
 type UserTier = 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra';
 
+type LocalState = {
+  user: User | null;
+  balance: number;
+  referralCode: string;
+  referrals: Referral[];
+  userTier: UserTier;
+  lastClaimTimestamp: number | null;
+};
+
 type AppState = {
   user: User | null;
   balance: number;
@@ -40,15 +67,14 @@ type AppState = {
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
-  addReferral: () => void;
 };
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
-const initialState = {
+const initialState: LocalState = {
   user: null,
   balance: 0,
-  referralCode: 'PSNAI42',
+  referralCode: '', // Will be generated based on user ID
   referrals: [],
   userTier: 'Free' as UserTier,
   lastClaimTimestamp: null,
@@ -57,30 +83,201 @@ const initialState = {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [state, setState] = useState(initialState);
+  const [state, setState] = useState<LocalState>(initialState);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Load user data from Firestore - Simple approach
+  const loadUserDataFromFirestore = useCallback(async (uid: string) => {
+    try {
+      const userDocRef = doc(db, 'users', uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        
+        // Check if balance exists, if not calculate from claims
+        if (userData.balance === undefined || userData.balance === null) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('⚠️ No balance field found, calculating from claims...');
+          }
+          
+          // Calculate balance from claims collection
+          const balanceCalculation = await calculateUserBalance(uid);
+          
+          if (balanceCalculation) {
+            // Update state with calculated balance
+            setState(prevState => ({
+              ...prevState,
+              balance: balanceCalculation.totalBalance,
+              userTier: userData.plan?.id || 'Free',
+              lastClaimTimestamp: userData.claimStats?.lastClaimAt?.toMillis() || null,
+            }));
+            
+            if (process.env.NODE_ENV === 'development') {
+              console.log('✅ Balance calculated from claims:', balanceCalculation.totalBalance);
+            }
+          } else {
+            if (process.env.NODE_ENV === 'development') {
+              console.error('❌ Failed to calculate balance from claims');
+            }
+            setState(prevState => ({
+              ...prevState,
+              balance: 0,
+              userTier: userData.plan?.id || 'Free',
+              lastClaimTimestamp: userData.claimStats?.lastClaimAt?.toMillis() || null,
+            }));
+          }
+        } else {
+          // Update state with Firestore data directly
+          setState(prevState => ({
+            ...prevState,
+            balance: userData.balance || 0,
+            userTier: userData.plan?.id || 'Free',
+            lastClaimTimestamp: userData.claimStats?.lastClaimAt?.toMillis() || null,
+            referralCode: userData.referralCode || prevState.referralCode,
+          }));
+          
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Balance loaded from users collection:', userData.balance || 0, 'EPSN');
+          }
+        }
+        return userData;
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('⚠️ No user document found, creating with 0 balance');
+        }
+        
+        // Generate unique referral code for new user
+        const referralCode = await generateUniqueReferralCode(uid);
+        
+        // Create user document with 0 balance and referral code
+        const newUserData = {
+          balance: 0,
+          referralCode: referralCode,
+          referralStats: {
+            totalReferred: 0,
+            totalEarned: 0,
+            lastReferralAt: null,
+          },
+          plan: { id: 'Free', maxDailyClaims: 1 },
+          claimStats: {
+            todayClaimCount: 0,
+            lastClaimDayKey: '',
+            lastClaimAt: null,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        
+        await setDoc(userDocRef, newUserData);
+        
+        setState(prevState => ({
+          ...prevState,
+          balance: 0,
+          userTier: 'Free',
+          lastClaimTimestamp: null,
+          referralCode: referralCode,
+        }));
+        
+        return newUserData;
+      }
+    } catch (error) {
+      console.error('❌ Error loading user data from Firestore:', error);
+      return null;
+    }
+  }, []);
+
+  // Save state to localStorage after Firestore update
+  const saveStateToLocalStorage = useCallback((uid: string, stateToSave: LocalState) => {
+    try {
+      localStorage.setItem(`epsilonDropState_${uid}`, JSON.stringify(stateToSave));
+      console.log('State saved to localStorage');
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setFirebaseUser(fbUser);
       if (fbUser) {
         setIsLoggedIn(true);
-        const storedState = localStorage.getItem(`psnaidropState_${fbUser.uid}`);
+        const storedState = localStorage.getItem(`epsilonDropState_${fbUser.uid}`);
         if (storedState) {
           const parsedState = JSON.parse(storedState);
-          setState(parsedState);
-          setUser(parsedState.user);
+          
+          // Check if stored user data contains dummy data and needs refresh
+          if (isDummyUser(parsedState.user)) {
+            // Refresh with real Firebase Auth data
+            const displayName = fbUser.displayName || fbUser.email || 'User';
+            const newUser: User = {
+              uid: fbUser.uid,
+              name: displayName,
+              username: fbUser.email?.split('@')[0] || 'user',
+              avatar: fbUser.photoURL || generateAvatarUrl(displayName),
+            };
+            setUser(newUser);
+            const newState: LocalState = { 
+              ...parsedState, 
+              user: newUser,
+              referralCode: generateReferralCode(fbUser.uid)
+            };
+            setState(newState);
+          } else {
+            // Load from localStorage first for fast UI
+            setState(parsedState);
+            setUser(parsedState.user);
+          }
+          
+          // Always load fresh data from Firestore to ensure accuracy
+          const firestoreData = await loadUserDataFromFirestore(fbUser.uid);
+          if (firestoreData) {
+            // Update localStorage with fresh Firestore data
+            const updatedState = {
+              ...parsedState,
+              balance: firestoreData.balance || 0,
+              userTier: firestoreData.plan?.id || 'Free',
+              lastClaimTimestamp: firestoreData.claimStats?.lastClaimAt?.toMillis() || null,
+            };
+            saveStateToLocalStorage(fbUser.uid, updatedState);
+          } else {
+            // If no Firestore data but localStorage has balance, migrate it
+            if (parsedState.balance && parsedState.balance > 0) {
+              console.log('Migrating localStorage balance to Firestore:', parsedState.balance);
+              await migrateUserBalanceToFirestore(fbUser.uid, parsedState.balance);
+              // Reload after migration
+              await loadUserDataFromFirestore(fbUser.uid);
+            }
+          }
+          
+          // Debug balance consistency in development
+          if (process.env.NODE_ENV === 'development') {
+            setTimeout(() => printBalanceDebug(fbUser.uid), 1000);
+          }
         } else {
-           const newUser: User = {
+          // Create user from real Firebase Auth data - prioritize email if no displayName
+          const displayName = fbUser.displayName || fbUser.email || 'User';
+          const newUser: User = {
             uid: fbUser.uid,
-            name: fbUser.displayName || 'Test User',
-            username: fbUser.email || '@testuser',
-            avatar: fbUser.photoURL || 'https://picsum.photos/seed/user/100/100',
+            name: displayName,
+            username: fbUser.email?.split('@')[0] || 'user',
+            avatar: fbUser.photoURL || generateAvatarUrl(displayName),
           };
           setUser(newUser);
-          const newState = { ...initialState, user: newUser };
+          
+          // For new users, load from Firestore first, then create state
+          const firestoreData = await loadUserDataFromFirestore(fbUser.uid);
+          const newState: LocalState = { 
+            ...initialState, 
+            user: newUser,
+            referralCode: generateReferralCode(fbUser.uid),
+            balance: firestoreData?.balance || 0,
+            userTier: firestoreData?.plan?.id || 'Free',
+            lastClaimTimestamp: firestoreData?.claimStats?.lastClaimAt?.toMillis() || null,
+          };
           setState(newState);
+          saveStateToLocalStorage(fbUser.uid, newState);
         }
       } else {
         setUser(null);
@@ -97,7 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!isLoading && firebaseUser) {
       try {
         const fullState = { ...state, user };
-        localStorage.setItem(`psnaidropState_${firebaseUser.uid}`, JSON.stringify(fullState));
+        localStorage.setItem(`epsilonDropState_${firebaseUser.uid}`, JSON.stringify(fullState));
       } catch (error) {
         console.error('Failed to save state to localStorage', error);
       }
@@ -118,7 +315,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     setIsLoading(true);
     if (firebaseUser) {
-      localStorage.removeItem(`psnaidropState_${firebaseUser.uid}`);
+      localStorage.removeItem(`epsilonDropState_${firebaseUser.uid}`);
     }
     await signOut(auth);
     setUser(null);
@@ -127,35 +324,78 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(false);
   }, [firebaseUser]);
 
+  // Clear dummy data on app start
+  useEffect(() => {
+    clearAllDummyData();
+  }, []);
+
  const claimTokens = useCallback(async (): Promise<{success: boolean, message: string}> => {
-    const result = await secureClaimTokens(state.lastClaimTimestamp, state.userTier);
-    
-    if (result.success && result.newTimestamp) {
-        setState((prevState) => ({
-            ...prevState,
-            balance: prevState.balance + 10,
-            lastClaimTimestamp: result.newTimestamp,
-        }));
+    try {
+      if (!firebaseUser) {
+        return { success: false, message: 'Please login first' };
+      }
+
+      // Simple idempotency key
+      const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      
+      // Get Firebase ID token
+      const token = await firebaseUser.getIdToken();
+      
+      // Call Firebase Function
+      const { httpsCallable } = await import('firebase/functions');
+      const { getFunctions } = await import('firebase/functions');
+      const functions = getFunctions();
+      const claimFunction = httpsCallable(functions, 'claim');
+      
+      const result = await claimFunction({ idempotencyKey });
+      const data = result.data as any;
+      
+      if (data.success) {
+        // Load fresh balance from Firestore after successful claim
+        const firestoreData = await loadUserDataFromFirestore(firebaseUser.uid);
+        
+        if (firestoreData) {
+          // Update state with fresh calculated balance
+          setState((prevState) => {
+            const newState = {
+              ...prevState,
+              balance: firestoreData.balance || prevState.balance + 10,
+              lastClaimTimestamp: firestoreData.claimStats?.lastClaimAt?.toMillis() || Date.now(),
+            };
+            
+            // Save updated state to localStorage
+            saveStateToLocalStorage(firebaseUser.uid, newState);
+            
+            return newState;
+          });
+        } else {
+          // Fallback to local update if Firestore fails
+          setState((prevState) => {
+            const newState = {
+              ...prevState,
+              balance: prevState.balance + 10,
+              lastClaimTimestamp: Date.now(),
+            };
+            
+            saveStateToLocalStorage(firebaseUser.uid, newState);
+            return newState;
+          });
+        }
+        return { success: true, message: data.message || 'Claimed successfully' };
+      }
+      return { success: false, message: data.message || 'Claim failed' };
+    } catch (e: any) {
+      console.error('Claim error:', e);
+      return { success: false, message: e?.message || 'Network error' };
     }
-    
-    return { success: result.success, message: result.message };
-}, [state.userTier, state.lastClaimTimestamp]);
+ }, [firebaseUser, loadUserDataFromFirestore, saveStateToLocalStorage]);
 
 
   const purchasePlan = useCallback((plan: UserTier) => {
     setState((prevState) => ({ ...prevState, userTier: plan }));
   }, []);
 
-  const addReferral = useCallback(() => {
-     if (state.referrals.length >= 5) return;
-     const newReferral = {
-        name: `Referral #${state.referrals.length + 1}`,
-        avatar: PlaceHolderImages[state.referrals.length % PlaceHolderImages.length].imageUrl,
-     }
-     setState(prevState => ({ ...prevState, referrals: [...prevState.referrals, newReferral]}));
-  }, [state.referrals]);
-
-  const value = { ...state, user, isLoggedIn, isLoading, login, logout, claimTokens, purchasePlan, addReferral };
+  const value = { ...state, user, isLoggedIn, isLoading, login, logout, claimTokens, purchasePlan };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

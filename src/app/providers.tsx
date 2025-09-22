@@ -13,7 +13,7 @@ import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const network = WalletAdapterNetwork.Devnet;
+  const network = WalletAdapterNetwork.Mainnet;
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   
   const wallets = useMemo(
@@ -34,3 +34,4 @@ export function Providers({ children }: { children: React.ReactNode }) {
     </ConnectionProvider>
   );
 }
+
