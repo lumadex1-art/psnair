@@ -73,18 +73,9 @@ export default function AdminPaymentsPage() {
   }, [user, isAppLoading, router]);
 
   const loadPaymentData = async () => {
-    // NOTE: This function is disabled until the backend is deployed.
-    // It is the source of the CORS error because the 'adminGetPayments' function
-    // is not yet available on the server.
-    toast({
-      title: "Backend Not Deployed",
-      description: "Data loading is disabled. Deploy backend functions to enable.",
-      variant: "destructive"
-    });
-    setLoading(false);
-    return;
-    /*
     try {
+      if (!user || user.uid !== ADMIN_UID) return;
+
       setLoading(true);
       
       const functions = getFunctions();
@@ -110,28 +101,22 @@ export default function AdminPaymentsPage() {
       }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
+        title: "Error loading data",
+        description: error.message || "An unexpected error occurred. Check browser console for details.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-    */
   };
 
   useEffect(() => {
     if (user && user.uid === ADMIN_UID) {
-      // Temporarily disable auto-loading to prevent CORS errors
-      setLoading(false);
-      // loadPaymentData(); // This line will be re-enabled after backend deployment
+      loadPaymentData();
     }
   }, [statusFilter, planFilter, user]);
 
   const handleApprovePayment = async (transactionId: string) => {
-    toast({ title: "Backend Not Deployed", description: "Approval function is disabled.", variant: "destructive" });
-    return;
-    /*
     try {
       const functions = getFunctions();
       const approveFunction = httpsCallable(functions, 'adminApprovePayment');
@@ -159,11 +144,43 @@ export default function AdminPaymentsPage() {
         variant: "destructive",
       });
     }
-    */
   };
 
   const exportTransactions = () => {
-    toast({ title: "Function Disabled", description: "Export is disabled until backend is deployed." });
+     if (filteredTransactions.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "There are no transactions matching the current filters.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const csvHeader = ['Transaction ID', 'User Email', 'User Name', 'Plan', 'Amount (SOL)', 'Status', 'Plan Upgraded', 'Date', 'Signature'].join(',');
+    const csvRows = filteredTransactions.map(tx => [
+      tx.id,
+      tx.userEmail,
+      tx.userName,
+      tx.planId,
+      (tx.amountLamports / 1000000000).toFixed(4),
+      tx.status,
+      tx.planUpgraded ? 'Yes' : 'No',
+      new Date(tx.createdAt.toDate()).toISOString(),
+      tx.providerRef || ''
+    ].join(','));
+    
+    const csvContent = [csvHeader, ...csvRows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `transactions-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   };
 
   const getStatusBadge = (status: string, planUpgraded: boolean) => {
@@ -238,21 +255,6 @@ export default function AdminPaymentsPage() {
           </div>
         </div>
         
-        {/* Important Notice */}
-        <Card className="bg-yellow-50 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800/50">
-            <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-                    <div>
-                        <p className="font-semibold text-yellow-800 dark:text-yellow-300">Backend Deployment Required</p>
-                        <p className="text-sm text-yellow-700 dark:text-yellow-400/80">
-                            This panel is currently in read-only mode. Please deploy the latest backend functions to enable data loading and approval actions.
-                        </p>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
         {/* Stats Cards */}
         {stats && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -331,7 +333,7 @@ export default function AdminPaymentsPage() {
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid (Approved)</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={planFilter} onValueChange={setPlanFilter}>
@@ -418,3 +420,4 @@ export default function AdminPaymentsPage() {
     </div>
   );
 }
+
