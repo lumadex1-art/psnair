@@ -187,14 +187,14 @@ export default function AdminPaymentsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const variants = {
+    const variants: Record<string, string> = {
       paid: 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
       pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
       failed: 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
       refunded: 'bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400'
     };
     
-    const icons = {
+    const icons: Record<string, React.ReactElement> = {
       paid: <CheckCircle className="h-3 w-3" />,
       pending: <Clock className="h-3 w-3" />,
       failed: <AlertTriangle className="h-3 w-3" />,
@@ -202,8 +202,8 @@ export default function AdminPaymentsPage() {
     };
     
     return (
-      <Badge className={cn('flex items-center gap-1', variants[status as keyof typeof variants])}>
-        {icons[status as keyof typeof icons]}
+      <Badge className={cn('flex items-center gap-1', variants[status])}>
+        {icons[status]}
         {status.toUpperCase()}
       </Badge>
     );
@@ -403,33 +403,23 @@ export default function AdminPaymentsPage() {
                     
                     <div className="flex gap-2">
                       {tx.status === 'paid' && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleApprovePayment(tx.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleRefundPayment(tx.id)}
-                          >
-                            <RefreshCw className="h-4 w-4 mr-1" />
-                            Refund
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => handleRefundPayment(tx.id)}
+                        >
+                          <RefreshCw className="h-4 w-4 mr-1" />
+                          Refund
+                        </Button>
                       )}
                       {tx.status === 'pending' && (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="default"
                           onClick={() => handleApprovePayment(tx.id)}
+                          className="bg-green-600 hover:bg-green-700"
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <CheckCircle className="h-4 w-4 mr-1" />
                           Manual Approve
                         </Button>
                       )}

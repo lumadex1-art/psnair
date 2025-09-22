@@ -43,7 +43,7 @@ export const adminGetPayments = async (request: CallableRequest<GetPaymentsData>
 
   try {
     // Build query for transactions
-    let transactionsQuery = db.collection("transactions")
+    let transactionsQuery: admin.firestore.Query = db.collection("transactions")
       .orderBy("createdAt", "desc")
       .limit(limit);
 
@@ -330,8 +330,7 @@ export const adminApprovePayment = async (request: CallableRequest<ApprovePaymen
       };
     }
     
-    // We can approve 'pending' or 'paid' transactions
-    if (transactionData.status !== "pending" && transactionData.status !== "paid") {
+    if (transactionData.status !== "pending") {
       throw new HttpsError("failed-precondition", 
         `Cannot approve transaction with status: ${transactionData.status}`);
     }

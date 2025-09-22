@@ -30,8 +30,4 @@ export const solanaConfirm = onRequest(corsConfirmSolanaPayment);
 export const claim = onCall(claimReward);
 
 // EXPORT FUNGSI ADMIN 
-export const adminGetPayments = onCall(adminGetPayments);
-export const adminApprovePayment = onCall(adminApprovePayment);
-export const adminGetPendingPayments = onCall(adminGetPendingPayments);
-export const adminGetAnalytics = onCall(adminGetAnalytics);
-export const adminRefundPayment = onCall(adminRefundPayment);
+export { adminGetPayments, adminApprovePayment, adminGetPendingPayments, adminGetAnalytics, adminRefundPayment } from './admin';
