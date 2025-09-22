@@ -14,7 +14,6 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
-  TrendingUp,
   Users,
   Calendar,
   AlertTriangle,
@@ -22,10 +21,9 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PLAN_CONFIG } from '@/lib/config';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
-import { app } from '@/lib/firebase'; // Import Firebase app instance
+import { auth } from '@/lib/firebase'; // Import auth instance
 
 interface Transaction {
   id: string;
@@ -54,6 +52,10 @@ interface PaymentStats {
 }
 
 const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
+// Correct Cloud Functions v2 URLs
+const GET_PAYMENTS_URL = 'https://admingetpayments-ivtinaswgq-uc.a.run.app';
+const APPROVE_PAYMENT_URL = 'https://adminapprovepayment-ivtinaswgq-uc.a.run.app';
+
 
 export default function AdminPaymentsPage() {
   const { user, isLoading: isAppLoading } = useAppContext();
@@ -66,9 +68,6 @@ export default function AdminPaymentsPage() {
   const [planFilter, setPlanFilter] = useState('all');
   const { toast } = useToast();
   
-  // Explicitly initialize functions with app instance and region for reliability
-  const functions = getFunctions(app, 'us-central1');
-
   // Redirect if not admin
   useEffect(() => {
     if (!isAppLoading && (!user || user.uid !== ADMIN_UID)) {
@@ -81,9 +80,34 @@ export default function AdminPaymentsPage() {
     }
   }, [user, isAppLoading, router, toast]);
 
+  const authenticatedFetch = async (url: string, body: object) => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error("Admin not authenticated.");
+    }
+    const token = await currentUser.getIdToken();
+    
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ data: body }) // Functions v2 expect a 'data' wrapper
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown server error' } }));
+        throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+    }
+
+    const responseData = await response.json();
+    // Functions v2 wrap the response in a 'result' object
+    return responseData.result;
+  };
+
   const loadPaymentData = async () => {
     try {
-      // Ensure we only run this if the user is the admin
       if (!user || user.uid !== ADMIN_UID) {
         setLoading(false);
         return;
@@ -91,15 +115,11 @@ export default function AdminPaymentsPage() {
 
       setLoading(true);
       
-      const getPaymentsFunction = httpsCallable(functions, 'adminGetPayments');
-      
-      const result = await getPaymentsFunction({
+      const data = await authenticatedFetch(GET_PAYMENTS_URL, {
         limit: 100,
         status: statusFilter !== 'all' ? statusFilter : undefined,
         planId: planFilter !== 'all' ? planFilter : undefined,
       });
-      
-      const data = result.data as any;
       
       if (data.success) {
         setTransactions(data.transactions);
@@ -117,13 +137,12 @@ export default function AdminPaymentsPage() {
         description: error.message || "An unexpected error occurred. Check browser console for details.",
         variant: "destructive",
       });
-      console.error("Firebase Functions call failed:", error);
+      console.error("Authenticated fetch failed:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  // Load data only when user is confirmed to be an admin
+  
   useEffect(() => {
     if (!isAppLoading && user && user.uid === ADMIN_UID) {
       loadPaymentData();
@@ -132,10 +151,10 @@ export default function AdminPaymentsPage() {
 
   const handleApprovePayment = async (transactionId: string) => {
     try {
-      const approveFunction = httpsCallable(functions, 'adminApprovePayment');
-      
-      const result = await approveFunction({ transactionId, notes: 'Manual approval from admin panel' });
-      const data = result.data as any;
+      const data = await authenticatedFetch(APPROVE_PAYMENT_URL, { 
+        transactionId, 
+        notes: 'Manual approval from admin panel' 
+      });
       
       if (data.success) {
         toast({
@@ -178,7 +197,7 @@ export default function AdminPaymentsPage() {
       (tx.amountLamports / 1000000000).toFixed(4),
       tx.status,
       tx.planUpgraded ? 'Yes' : 'No',
-      new Date(tx.createdAt.toDate()).toISOString(),
+      new Date(tx.createdAt._seconds * 1000).toISOString(),
       tx.providerRef || ''
     ].join(','));
     
@@ -335,7 +354,7 @@ export default function AdminPaymentsPage() {
            <CardHeader>
             <CardTitle>Transactions</CardTitle>
             <CardDescription>
-                Filter and manage all user payment transactions.
+                Filter and manage all user payment transactions. Transactions with "PENDING APPROVAL" status need manual action.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -396,7 +415,7 @@ export default function AdminPaymentsPage() {
                       <div className="text-left md:text-right mt-2 md:mt-0">
                         <p className="font-semibold">{(tx.amountLamports / 1000000000).toFixed(4)} SOL</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(tx.createdAt.toDate()).toLocaleString()}
+                          {new Date(tx.createdAt._seconds * 1000).toLocaleString()}
                         </p>
                       </div>
                     </div>
