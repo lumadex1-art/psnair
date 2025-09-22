@@ -60,7 +60,6 @@ export function ReferralInput({ onReferralProcessed, disabled = false, className
         setValidationResult(null);
       }
     } catch (error: any) {
-      console.error('Validation error:', error);
       setError('Failed to validate referral code');
       setValidationResult(null);
     } finally {
@@ -102,7 +101,6 @@ export function ReferralInput({ onReferralProcessed, disabled = false, className
         setError(data.message || 'Failed to process referral');
       }
     } catch (error: any) {
-      console.error('Process referral error:', error);
       setError(error.message || 'Failed to process referral');
     } finally {
       setIsProcessing(false);

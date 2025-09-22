@@ -20,7 +20,6 @@ export async function generateReward(
     const result = await generateReferralRewardTool(input);
     return { success: true, data: result };
   } catch (error) {
-    console.error('Error generating referral reward tool:', error);
     return { success: false, error: 'Failed to generate reward. Please try again later.' };
   }
 }

@@ -51,7 +51,6 @@ export function ReferralStats() {
           setError('Failed to load referral stats');
         }
       } catch (error: any) {
-        console.error('Error loading referral stats:', error);
         setError('Failed to load referral stats');
       } finally {
         setLoading(false);

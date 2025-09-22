@@ -33,14 +33,8 @@ export const migrateUserBalanceToFirestore = async (uid: string, localBalance: n
           migrationTimestamp: new Date(),
         });
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Migrated balance from localStorage: ${localBalance} (was ${currentFirestoreBalance})`);
-        }
         return { success: true, migratedBalance: localBalance };
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`No migration needed. Firestore balance (${currentFirestoreBalance}) >= localStorage (${localBalance})`);
-        }
         return { success: false, reason: 'firestore_balance_higher' };
       }
     } else {
@@ -59,15 +53,9 @@ export const migrateUserBalanceToFirestore = async (uid: string, localBalance: n
         migrationTimestamp: new Date(),
       });
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Created new user document with migrated balance: ${localBalance}`);
-      }
       return { success: true, migratedBalance: localBalance };
     }
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error migrating balance to Firestore:', error);
-    }
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
@@ -98,9 +86,6 @@ export const checkAndMigrateAllLocalStorageData = async () => {
           }
         }
       } catch (error) {
-        if (process.env.NODE_ENV === 'development') {
-          console.error(`Error processing key ${key}:`, error);
-        }
         migrationResults.push({
           uid: key,
           error: error instanceof Error ? error.message : 'Unknown error',
@@ -109,10 +94,8 @@ export const checkAndMigrateAllLocalStorageData = async () => {
       }
     }
     
-    console.log('Migration results:', migrationResults);
     return migrationResults;
   } catch (error) {
-    console.error('Error during bulk migration:', error);
     return [];
   }
 };
@@ -142,7 +125,6 @@ export const validateBalanceConsistency = async (uid: string, localBalance: numb
       recommendation: 'create_firestore_document'
     };
   } catch (error) {
-    console.error('Error validating balance consistency:', error);
     return {
       isConsistent: false,
       error: error instanceof Error ? error.message : 'Unknown error'

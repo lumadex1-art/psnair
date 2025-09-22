@@ -95,7 +95,6 @@ export default function ShopPage() {
       setPlanPricing(pricing);
       setLastUpdated(new Date());
     } catch (error) {
-      console.error('Error loading pricing:', error);
       toast({
         title: 'Pricing Error',
         description: 'Failed to load current prices. Using fallback values.',
@@ -175,7 +174,6 @@ export default function ShopPage() {
       purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan.` });
     } catch (err: any) {
-      console.error('Payment error:', err);
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     }
   };

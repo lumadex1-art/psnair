@@ -78,9 +78,6 @@ export const referralCodeExists = async (code: string): Promise<boolean> => {
     
     return !querySnapshot.empty;
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error checking referral code existence:', error);
-    }
     return false;
   }
 };
@@ -108,9 +105,6 @@ export const getUserByReferralCode = async (code: string) => {
       ...userDoc.data()
     };
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error getting user by referral code:', error);
-    }
     return null;
   }
 };
@@ -127,22 +121,13 @@ export const generateUniqueReferralCode = async (uid: string, maxAttempts: numbe
     const exists = await referralCodeExists(code);
     
     if (!exists) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`✅ Generated unique referral code: ${code} (attempt ${attempt})`);
-      }
       return code;
     }
     
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`⚠️ Referral code collision: ${code} (attempt ${attempt})`);
-    }
   }
   
   // Fallback: use timestamp-based code
   const fallbackCode = Date.now().toString(36).slice(-6).toUpperCase();
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔄 Using fallback referral code: ${fallbackCode}`);
-  }
   return fallbackCode;
 };
 
@@ -189,9 +174,6 @@ export const validateReferralCode = async (code: string, currentUserUid?: string
       }
     };
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error validating referral code:', error);
-    }
     return {
       valid: false,
       error: 'Validation error occurred',
@@ -241,9 +223,6 @@ export const getReferralStats = async (uid: string) => {
       recentReferrals: recentReferrals.slice(0, 5) // Limit to 5 most recent
     };
   } catch (error) {
-    if (process.env.NODE_ENV === 'development') {
-      console.error('Error getting referral stats:', error);
-    }
     return {
       totalReferred: 0,
       totalEarned: 0,

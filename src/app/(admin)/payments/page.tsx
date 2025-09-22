@@ -92,7 +92,6 @@ export default function AdminPaymentsPage() {
         });
       }
     } catch (error: any) {
-      console.error('Error loading payments:', error);
       toast({
         title: "Error",
         description: "Failed to load payment data",
@@ -131,7 +130,6 @@ export default function AdminPaymentsPage() {
         });
       }
     } catch (error: any) {
-      console.error('Error verifying payment:', error);
       toast({
         title: "Error",
         description: "Failed to verify payment",
@@ -164,7 +162,6 @@ export default function AdminPaymentsPage() {
         });
       }
     } catch (error: any) {
-      console.error('Error processing refund:', error);
       toast({
         title: "Error",
         description: "Failed to process refund",

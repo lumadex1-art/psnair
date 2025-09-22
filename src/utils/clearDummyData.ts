@@ -24,20 +24,14 @@ export const clearAllDummyData = () => {
         if (isDummy) {
           localStorage.removeItem(key);
           clearedCount++;
-          console.log(`Cleared dummy data for key: ${key}`);
         }
       } catch (e) {
         // Invalid JSON, remove it
         localStorage.removeItem(key);
         clearedCount++;
-        console.log(`Removed invalid localStorage key: ${key}`);
       }
     }
   });
-  
-  if (clearedCount > 0) {
-    console.log(`Cleared ${clearedCount} dummy data entries from localStorage`);
-  }
   
   return clearedCount;
 };

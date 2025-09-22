@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -100,9 +99,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         
         // Check if balance exists, if not calculate from claims
         if (userData.balance === undefined || userData.balance === null) {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('⚠️ No balance field found, calculating from claims...');
-          }
           
           // Calculate balance from claims collection
           const balanceCalculation = await calculateUserBalance(uid);
@@ -116,13 +112,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               lastClaimTimestamp: userData.claimStats?.lastClaimAt?.toMillis() || null,
             }));
             
-            if (process.env.NODE_ENV === 'development') {
-              console.log('✅ Balance calculated from claims:', balanceCalculation.totalBalance);
-            }
           } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('❌ Failed to calculate balance from claims');
-            }
             setState(prevState => ({
               ...prevState,
               balance: 0,
@@ -140,15 +130,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             referralCode: userData.referralCode || prevState.referralCode,
           }));
           
-          if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Balance loaded from users collection:', userData.balance || 0, 'EPSN');
-          }
         }
         return userData;
       } else {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('⚠️ No user document found, creating with 0 balance');
-        }
         
         // Generate unique referral code for new user
         const referralCode = await generateUniqueReferralCode(uid);
@@ -185,7 +169,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return newUserData;
       }
     } catch (error) {
-      console.error('❌ Error loading user data from Firestore:', error);
       return null;
     }
   }, []);
@@ -194,9 +177,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const saveStateToLocalStorage = useCallback((uid: string, stateToSave: LocalState) => {
     try {
       localStorage.setItem(`epsilonDropState_${uid}`, JSON.stringify(stateToSave));
-      console.log('State saved to localStorage');
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
     }
   }, []);
 
@@ -246,17 +227,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           } else {
             // If no Firestore data but localStorage has balance, migrate it
             if (parsedState.balance && parsedState.balance > 0) {
-              console.log('Migrating localStorage balance to Firestore:', parsedState.balance);
               await migrateUserBalanceToFirestore(fbUser.uid, parsedState.balance);
               // Reload after migration
               await loadUserDataFromFirestore(fbUser.uid);
             }
           }
           
-          // Debug balance consistency in development
-          if (process.env.NODE_ENV === 'development') {
-            setTimeout(() => printBalanceDebug(fbUser.uid), 1000);
-          }
         } else {
           // Create user from real Firebase Auth data - prioritize email if no displayName
           const displayName = fbUser.displayName || fbUser.email || 'User';
@@ -298,7 +274,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const fullState = { ...state, user };
         localStorage.setItem(`epsilonDropState_${firebaseUser.uid}`, JSON.stringify(fullState));
       } catch (error) {
-        console.error('Failed to save state to localStorage', error);
       }
     }
   }, [state, user, firebaseUser, isLoading]);
@@ -309,7 +284,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
       // onAuthStateChanged will handle the rest
     } catch (error) {
-      console.error("Error signing in with Google", error);
       setIsLoading(false);
     }
   }, []);
@@ -336,8 +310,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!firebaseUser) {
         return { success: false, message: 'Please login first' };
       }
-      
-      const rewardAmount = state.userTier === 'Free' ? 1 : 10;
 
       // Simple idempotency key
       const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -361,6 +333,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (firestoreData) {
           // Update state with fresh calculated balance
           setState((prevState) => {
+            const rewardAmount = prevState.userTier === 'Free' ? 1 : 10;
             const newState = {
               ...prevState,
               balance: firestoreData.balance || prevState.balance + rewardAmount,
@@ -375,7 +348,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } else {
           // Fallback to local update if Firestore fails
           setState((prevState) => {
-             const fallbackReward = prevState.userTier === 'Free' ? 1 : 10;
+            const fallbackReward = prevState.userTier === 'Free' ? 1 : 10;
             const newState = {
               ...prevState,
               balance: prevState.balance + fallbackReward,
@@ -386,14 +359,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return newState;
           });
         }
-        return { success: true, message: data.message || `Claimed ${rewardAmount} EPSN successfully` };
+        return { success: true, message: data.message || 'Claimed successfully' };
       }
       return { success: false, message: data.message || 'Claim failed' };
     } catch (e: any) {
-      console.error('Claim error:', e);
       return { success: false, message: e?.message || 'Network error' };
     }
- }, [firebaseUser, state.userTier, loadUserDataFromFirestore, saveStateToLocalStorage]);
+ }, [firebaseUser, loadUserDataFromFirestore, saveStateToLocalStorage]);
 
 
   const purchasePlan = useCallback((plan: UserTier) => {

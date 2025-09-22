@@ -74,16 +74,8 @@ export const calculateUserBalance = async (uid: string): Promise<BalanceCalculat
       todayClaimCount: todayClaims.length,
     };
     
-    console.log(`💰 Balance calculated for ${uid}:`, {
-      totalBalance,
-      totalClaims: claims.length,
-      todayClaimCount: todayClaims.length,
-      lastClaim: lastClaimDate?.toLocaleString(),
-    });
-    
     return result;
   } catch (error) {
-    console.error('Error calculating balance:', error);
     return {
       totalBalance: 0,
       totalClaims: 0,
@@ -112,16 +104,6 @@ export const verifyBalanceConsistency = async (uid: string) => {
     const isConsistent = userBalance === calculatedBalance;
     const difference = Math.abs(userBalance - calculatedBalance);
     
-    console.log(`🔍 Balance verification for ${uid}:`, {
-      userDocBalance: userBalance,
-      calculatedBalance: calculatedBalance,
-      isConsistent: isConsistent ? '✅' : '❌',
-      difference,
-      recommendation: isConsistent 
-        ? 'Balances match perfectly' 
-        : `Update users.balance to ${calculatedBalance}`,
-    });
-    
     return {
       userDocBalance: userBalance,
       calculatedBalance,
@@ -131,7 +113,6 @@ export const verifyBalanceConsistency = async (uid: string) => {
       lastClaimDate: calculation.lastClaimDate,
     };
   } catch (error) {
-    console.error('Error verifying balance consistency:', error);
     return {
       userDocBalance: 0,
       calculatedBalance: 0,
@@ -179,14 +160,12 @@ export const fixUserBalance = async (uid: string) => {
       });
     }
     
-    console.log(`✅ Fixed balance for ${uid}: ${correctBalance} EPSN`);
     return {
       success: true,
       newBalance: correctBalance,
       claimsProcessed: calculation.totalClaims,
     };
   } catch (error) {
-    console.error('Error fixing balance:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

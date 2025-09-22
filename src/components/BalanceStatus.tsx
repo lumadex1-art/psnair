@@ -39,7 +39,6 @@ export function BalanceStatus() {
           setSyncStatus('inconsistent');
         }
       } catch (error) {
-        console.error('Error checking balance status:', error);
         setSyncStatus('error');
       }
     };

@@ -93,7 +93,6 @@ export const debugUserBalance = async (uid: string): Promise<BalanceDebugInfo> =
 
     return debugInfo;
   } catch (error) {
-    console.error('Error debugging balance:', error);
     debugInfo.consistency.recommendation = 'Error occurred during debug';
     return debugInfo;
   }
@@ -102,35 +101,6 @@ export const debugUserBalance = async (uid: string): Promise<BalanceDebugInfo> =
 export const printBalanceDebug = async (uid: string) => {
   const debug = await debugUserBalance(uid);
   
-  console.group(`🔍 Balance Debug for User: ${uid}`);
-  
-  console.log('📱 localStorage:', {
-    exists: debug.localStorage.exists,
-    balance: debug.localStorage.balance,
-    lastClaim: debug.localStorage.lastClaimTimestamp 
-      ? new Date(debug.localStorage.lastClaimTimestamp).toLocaleString()
-      : 'Never',
-    tier: debug.localStorage.userTier,
-  });
-  
-  console.log('☁️ Firestore:', {
-    exists: debug.firestore.exists,
-    balance: debug.firestore.balance,
-    lastClaim: debug.firestore.lastClaimAt 
-      ? debug.firestore.lastClaimAt.toDate().toLocaleString()
-      : 'Never',
-    plan: debug.firestore.planId,
-    claimCount: debug.firestore.claimCount,
-  });
-  
-  console.log('⚖️ Consistency Check:', {
-    match: debug.consistency.balanceMatch ? '✅' : '❌',
-    difference: debug.consistency.difference,
-    recommendation: debug.consistency.recommendation,
-  });
-  
-  console.groupEnd();
-  
   return debug;
 };
 
@@ -138,7 +108,6 @@ export const fixBalanceInconsistency = async (uid: string) => {
   const debug = await debugUserBalance(uid);
   
   if (debug.consistency.balanceMatch) {
-    console.log('✅ Balances already in sync');
     return { success: true, message: 'Already in sync' };
   }
   
@@ -171,14 +140,12 @@ export const fixBalanceInconsistency = async (uid: string) => {
       });
     }
     
-    console.log(`✅ Fixed balance inconsistency. New balance: ${correctBalance}`);
     return { 
       success: true, 
       message: `Balance fixed to ${correctBalance}`,
       newBalance: correctBalance 
     };
   } catch (error) {
-    console.error('❌ Error fixing balance:', error);
     return { 
       success: false, 
       message: error instanceof Error ? error.message : 'Unknown error' 

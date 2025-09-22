@@ -58,8 +58,6 @@ export async function getSolanaPrice(): Promise<number> {
 
     return solPrice;
   } catch (error) {
-    console.error('Error fetching SOL price:', error);
-    
     // Return cached price if available, otherwise fallback
     if (pricingCache) {
       pricingCache.isStale = true;
@@ -102,8 +100,6 @@ export async function getPlanPricing(usdPrice: number) {
       isStale: pricingCache?.isStale || false,
     };
   } catch (error) {
-    console.error('Error calculating plan pricing:', error);
-    
     // Fallback to fixed SOL amounts if API fails
     const fallbackSolAmounts: Record<number, number> = {
       4.99: 0.033,

@@ -59,7 +59,6 @@ export function ReferralCode() {
         });
       }
     } catch (error) {
-      console.log('Share cancelled or failed');
     }
   };
 

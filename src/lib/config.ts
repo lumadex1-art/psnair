@@ -198,15 +198,7 @@ export const validateConfig = () => {
   });
   
   if (errors.length > 0) {
-    console.error('❌ Configuration validation failed:');
-    errors.forEach(error => console.error(`  - ${error}`));
     throw new Error('Invalid configuration');
   }
   
-  console.log('✅ Configuration validated successfully');
 };
-
-// Auto-validate in development
-// if (DEV_CONFIG.ENABLE_DEBUG) {
-//   validateConfig();
-// }
