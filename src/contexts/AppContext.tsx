@@ -16,6 +16,7 @@ import { migrateUserBalanceToFirestore } from '@/utils/migrateBalance';
 import { printBalanceDebug } from '@/utils/balanceDebug';
 import { calculateUserBalance, verifyBalanceConsistency } from '@/utils/balanceCalculator';
 import { generateUniqueReferralCode } from '@/utils/referralCode';
+import { PLAN_CONFIG } from '@/lib/config';
 
 // Helper functions for real user data
 const generateAvatarUrl = (name: string): string => {
@@ -43,7 +44,7 @@ type Referral = {
   avatar: string;
 };
 
-type UserTier = 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra';
+type UserTier = keyof typeof PLAN_CONFIG.PRICES;
 
 type LocalState = {
   user: User | null;

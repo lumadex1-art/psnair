@@ -14,8 +14,9 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
+import { PLAN_CONFIG } from '@/lib/config';
 
-type Tier = 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra';
+type Tier = keyof typeof PLAN_CONFIG.PRICES;
 
 // Merchant (treasury) wallet on Solana mainnet
 const MERCHANT_WALLET = new PublicKey('Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8vBby');
@@ -23,31 +24,38 @@ const MERCHANT_WALLET = new PublicKey('Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8v
 // Plan configurations with USD base prices (one-time payment)
 const plans = [
   {
-    name: 'Premium' as Tier,
+    name: 'Starter' as Tier,
     usdPrice: 4.99,
     description: 'For active claimers who want more.',
-    features: ['5 Claims per day', 'Lifetime access', 'Priority Support'],
+    features: PLAN_CONFIG.FEATURES.Starter.features,
     isPopular: false,
   },
   {
-    name: 'Pro' as Tier,
+    name: 'Silver' as Tier,
     usdPrice: 7.99,
     description: 'For dedicated users who want to step up.',
-    features: ['7 Claims per day', 'Lifetime access', 'Faster Cooldowns', 'Priority Support'],
+    features: PLAN_CONFIG.FEATURES.Silver.features,
     isPopular: true,
   },
   {
-    name: 'Master' as Tier,
+    name: 'Gold' as Tier,
     usdPrice: 14.99,
     description: 'For serious enthusiasts aiming for the top.',
-    features: ['15 Claims per day', 'Lifetime access', 'Exclusive Tools Access', 'Master Badge'],
+    features: PLAN_CONFIG.FEATURES.Gold.features,
     isPopular: false,
   },
   {
-    name: 'Ultra' as Tier,
+    name: 'Platinum' as Tier,
     usdPrice: 24.99,
     description: 'For power users aiming to maximize their earnings.',
-    features: ['25 Claims per day', 'Lifetime access', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+    features: PLAN_CONFIG.FEATURES.Platinum.features,
+    isPopular: false,
+  },
+  {
+    name: 'Diamond' as Tier,
+    usdPrice: 37.5,
+    description: 'The ultimate plan for the top-tier investors.',
+    features: PLAN_CONFIG.FEATURES.Diamond.features,
     isPopular: false,
   },
 ];
@@ -290,7 +298,8 @@ export default function ShopPage() {
           {plans.map((plan) => {
             const pricing = planPricing[plan.name];
             const isCurrentPlan = userTier === plan.name;
-            
+            const claimsPerDay = PLAN_CONFIG.FEATURES[plan.name]?.maxDailyClaims || 1;
+
             return (
               <Card 
                 key={plan.name} 
@@ -407,10 +416,7 @@ export default function ShopPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                          {plan.name === 'Premium' ? '5x' : 
-                           plan.name === 'Pro' ? '7x' : 
-                           plan.name === 'Master' ? '15x' : 
-                           plan.name === 'Ultra' ? '25x' : '1x'}
+                          {claimsPerDay}x
                         </p>
                         <p className="text-xs text-muted-foreground">per day</p>
                       </div>

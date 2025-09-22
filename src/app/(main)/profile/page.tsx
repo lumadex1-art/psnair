@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { PLAN_CONFIG } from '@/lib/config';
 
 export default function ProfilePage() {
   const { user, balance, userTier, logout, referralCode, referrals } = useAppContext();
@@ -37,6 +38,8 @@ export default function ProfilePage() {
   if (!user) {
     return null; // Or a loading state
   }
+  
+  const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative">
@@ -179,7 +182,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-2 gap-4 text-center">
               <div className="p-3 rounded-lg bg-accent/50">
                 <p className="text-2xl font-bold text-primary">
-                  {userTier === 'Premium' ? '5' : userTier === 'Pro' ? '7' : userTier === 'Master' ? '15' : userTier === 'Ultra' ? '25' : '1'}
+                  {claimsPerDay}
                 </p>
                 <p className="text-xs text-muted-foreground uppercase tracking-wider">Daily Claims</p>
               </div>

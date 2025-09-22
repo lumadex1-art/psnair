@@ -17,9 +17,9 @@ export const SOLANA_CONFIG = {
   // Network settings (public)
   NETWORK: process.env.NEXT_PUBLIC_SOLANA_NETWORK || "mainnet-beta",
   
-  // RPC endpoints (public)
+  // RPC endpoints (public) - Updated untuk mengatasi 403 Forbidden
   RPC_ENDPOINTS: {
-    mainnet: "https://api.mainnet-beta.solana.com",
+    mainnet: "https://rpc-mainnet.solanatracker.io/?api_key=bb9aeffe-6d8f-4df1-a357-d0dfde36ee28",
     devnet: "https://api.devnet.solana.com",
     testnet: "https://api.testnet.solana.com",
   },
@@ -32,10 +32,11 @@ export const PLAN_CONFIG = {
   // Plan prices in SOL (public information)
   PRICES: {
     Free: 0,
-    Premium: 0.033,    // ~$5 USD
-    Pro: 0.053,        // ~$8 USD  
-    Master: 0.1,       // ~$15 USD
-    Ultra: 0.167,      // ~$25 USD
+    Starter : 0.033,    // ~$5 USD
+    Silver: 0.053,        // ~$8 USD  
+    Gold: 0.1,       // ~$15 USD
+    Platinum: 0.167, 
+    Diamond:0.25     // ~$25 USD
   },
   
   // Plan features (public)
@@ -44,21 +45,25 @@ export const PLAN_CONFIG = {
       maxDailyClaims: 1,
       features: ['1 Claim per day', 'Basic Support'],
     },
-    Premium: {
+    Starter: {
       maxDailyClaims: 5,
       features: ['5 Claims per day', 'Priority Support'],
     },
-    Pro: {
-      maxDailyClaims: 7,
-      features: ['7 Claims per day', 'Faster Cooldowns', 'Priority Support'],
+    Silver: {
+      maxDailyClaims: 10,
+      features: ['10 Claims per day', 'Faster Cooldowns', 'Priority Support'],
     },
-    Master: {
-      maxDailyClaims: 15,
-      features: ['15 Claims per day', 'Exclusive Tools Access', 'Master Badge'],
+    Gold: {
+      maxDailyClaims: 20,
+      features: ['20 Claims per day', 'Exclusive Tools Access', 'Master Badge'],
     },
-    Ultra: {
-      maxDailyClaims: 25,
-      features: ['25 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+    Platinum: {
+      maxDailyClaims: 50,
+      features: ['50 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+    },
+    Diamond: {
+      maxDailyClaims: 100,
+      features: ['100 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
     },
   },
 } as const;

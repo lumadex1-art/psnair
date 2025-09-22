@@ -5,6 +5,7 @@ import {
   GenerateReferralRewardToolInput,
   GenerateReferralRewardToolOutput,
 } from '@/ai/flows/referral-reward-tool-generation';
+import { PLAN_CONFIG } from '@/lib/config';
 
 type ActionResult = {
   success: boolean;
@@ -37,17 +38,11 @@ type ClaimResult = {
 
 export async function secureClaimTokens(
     lastClaimTimestamp: number | null,
-    userTier: 'Free' | 'Premium' | 'Pro' | 'Master' | 'Ultra'
+    userTier: keyof typeof PLAN_CONFIG.PRICES
 ): Promise<ClaimResult> {
     // This function simulates a secure backend endpoint (e.g., a Firebase Function).
     
-    let claimsPerDay = 1;
-    switch (userTier) {
-        case 'Premium': claimsPerDay = 5; break;
-        case 'Pro': claimsPerDay = 7; break;
-        case 'Master': claimsPerDay = 15; break;
-        case 'Ultra': claimsPerDay = 25; break;
-    }
+    const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
 
     const now = Date.now();
     const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;

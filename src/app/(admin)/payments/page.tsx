@@ -22,6 +22,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PLAN_CONFIG } from '@/lib/config';
 
 interface Transaction {
   id: string;
@@ -352,10 +353,9 @@ export default function AdminPaymentsPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Plans</SelectItem>
-                  <SelectItem value="Premium">Premium</SelectItem>
-                  <SelectItem value="Pro">Pro</SelectItem>
-                  <SelectItem value="Master">Master</SelectItem>
-                  <SelectItem value="Ultra">Ultra</SelectItem>
+                  {Object.keys(PLAN_CONFIG.PRICES).map((plan) => (
+                    plan !== 'Free' && <SelectItem key={plan} value={plan}>{plan}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

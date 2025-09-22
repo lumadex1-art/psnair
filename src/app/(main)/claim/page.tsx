@@ -11,6 +11,8 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { UserAvatar } from '@/components/UserAvatar';
 import Image from 'next/image';
+import { PLAN_CONFIG } from '@/lib/config';
+
 export default function ClaimPage() {
   const { user, balance, claimTokens, lastClaimTimestamp, userTier } = useAppContext();
   const { toast } = useToast();
@@ -18,11 +20,11 @@ export default function ClaimPage() {
   const [timeRemaining, setTimeRemaining] = useState('');
   const [isClaiming, setIsClaiming] = useState(false);
 
-  const claimsPerDay = userTier === 'Premium' ? 5 : userTier === 'Pro' ? 7 : userTier === 'Master' ? 15 : userTier === 'Ultra' ? 25 : 1;
+  const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
 
   // Conversion rates
-  const EPSN_TO_IDR = 250; // 1 EPSN = 250 IDR
+  const EPSN_TO_IDR = 500; // 1 EPSN = 500 IDR
   const EPSN_TO_PSN = 1000; // 1000 EPSN = 1 PSN
   const PSN_TO_IDR = 250000; // 1 PSN = 250,000 IDR
 
@@ -300,9 +302,4 @@ export default function ClaimPage() {
     </div>
   );
 }
-
-    
-
-    
-
     
