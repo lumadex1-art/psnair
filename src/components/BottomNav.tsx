@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -32,7 +33,8 @@ export function BottomNav() {
   const { user } = useAppContext();
   
   const isAdmin = user?.uid === ADMIN_UID;
-  const navItems = isAdmin ? [...baseNavItems.slice(0, 5), adminNavItem] : baseNavItems;
+  // Sembunyikan tombol admin untuk sementara
+  const navItems = baseNavItems;
 
 
   return (
@@ -43,7 +45,7 @@ export function BottomNav() {
       {/* Navigation content */}
       <nav className={cn(
         "relative grid h-20 items-center gap-1 px-2 py-2",
-        isAdmin ? 'grid-cols-6' : 'grid-cols-5'
+        isAdmin ? 'grid-cols-5' : 'grid-cols-5' // Tetap 5 kolom
       )}>
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
