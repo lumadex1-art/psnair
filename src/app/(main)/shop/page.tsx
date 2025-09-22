@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -141,9 +142,7 @@ export default function ShopPage() {
       const functions = getFunctions();
       const createIntentFunction = httpsCallable(functions, 'solanaCreateIntent');
       
-      // The payload for a callable function must be an object.
-      // The `planId` is expected directly in the body by the backend function.
-      const intentResult = await createIntentFunction({ data: { planId: plan } });
+      const intentResult = await createIntentFunction({ planId: plan });
       const intent = intentResult.data as any;
       
       if (!intent?.success) {
@@ -171,7 +170,7 @@ export default function ShopPage() {
 
       // Confirm payment via HTTPS Function
       const confirmFunction = httpsCallable(functions, 'solanaConfirm');
-      const confirmResult = await confirmFunction({ data: { transactionId, signature } });
+      const confirmResult = await confirmFunction({ transactionId, signature });
       const confirmData = confirmResult.data as any;
       
       if (!confirmData?.success) {
