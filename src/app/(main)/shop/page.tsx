@@ -297,14 +297,14 @@ export default function ShopPage() {
               <Card 
                 key={plan.name} 
                 className={cn(
-                  'relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl',
-                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 scale-105',
+                  'relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl transition-all duration-300 hover:shadow-2xl',
+                  plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20 scale-105 pt-4',
                   isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800'
                 )}
               > 
                 {/* Popular Badge */}
                 {plan.isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-20">
                     <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1 shadow-lg animate-pulse">
                       ⭐ MOST POPULAR
                     </Badge>
@@ -333,12 +333,12 @@ export default function ShopPage() {
                         <div className="relative bg-gradient-to-br from-background/80 to-background/60 p-3 rounded-lg border border-border/50">
                           {isLoadingPrices ? (
                             <div className="animate-pulse">
-                              <div className="h-8 bg-muted rounded w-20 mb-1"></div>
+                              <div className="h-6 bg-muted rounded w-20 mb-1"></div>
                               <div className="h-4 bg-muted rounded w-16"></div>
                             </div>
                           ) : pricing ? (
                             <>
-                              <p className="font-headline text-3xl font-bold text-primary">
+                              <p className="font-headline text-2xl font-bold text-primary">
                                 {formatSolAmount(pricing.sol)} SOL
                               </p>
                               <p className="text-xs text-muted-foreground">one-time</p>
