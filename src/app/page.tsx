@@ -1,3 +1,4 @@
+
 'use client';
 
 import { ArrowRight } from 'lucide-react';
@@ -31,7 +32,7 @@ export default function LoginPage() {
   const [isRegistering, setIsRegistering] = useState(false);
 
   // Set to `true` to show email/password login, `false` to hide for deployment
-  const showEmailLogin = true;
+  const showEmailLogin = false;
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -164,23 +165,25 @@ export default function LoginPage() {
                 <span className="ml-2 font-medium">Continue with Google</span>
               </Button>
 
-              <div className="text-center pt-4 border-t border-border/30">
-                {isRegistering ? (
-                  <p className="text-sm text-muted-foreground">
-                    Already have an account?{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
-                      Sign In
-                    </Button>
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
-                      Sign Up
-                    </Button>
-                  </p>
-                )}
-              </div>
+              {showEmailLogin && (
+                <div className="text-center pt-4 border-t border-border/30">
+                  {isRegistering ? (
+                    <p className="text-sm text-muted-foreground">
+                      Already have an account?{' '}
+                      <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
+                        Sign In
+                      </Button>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      Don't have an account?{' '}
+                      <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
+                        Sign Up
+                      </Button>
+                    </p>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         
