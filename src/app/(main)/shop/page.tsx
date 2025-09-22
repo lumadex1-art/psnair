@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -183,7 +184,7 @@ export default function ShopPage() {
           <div className="flex items-center justify-center gap-8 mb-8">
             {/* LOBSTER Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-orange-400 to-red-500 p-1 shadow-lg">
+              <div className="relative w-16 h-16">
                 <Image
                   src="/lobster.png"
                   alt="LOBSTER Token"
@@ -197,7 +198,7 @@ export default function ShopPage() {
 
             {/* PSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-1 shadow-lg">
+              <div className="relative w-16 h-16">
                 <Image
                   src="/pp.svg"
                   alt="PSN Token"
@@ -211,7 +212,7 @@ export default function ShopPage() {
 
             {/* EPSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
+              <div className="relative w-16 h-16">
                 <Image
                   src="/le.png"
                   alt="EPSN Token"
@@ -451,7 +452,7 @@ export default function ShopPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* LOBSTER Token */}
               <div className="flex flex-col items-center space-y-3 p-4 bg-gradient-to-br from-orange-50/50 to-red-50/50 dark:from-orange-900/20 dark:to-red-900/20 rounded-xl border border-orange-200/50 dark:border-orange-800/50">
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-red-500 p-1 shadow-lg">
+                <div className="relative w-12 h-12">
                   <Image
                     src="/lobster.png"
                     alt="LOBSTER Token"
@@ -469,7 +470,7 @@ export default function ShopPage() {
 
               {/* PSN Token */}
               <div className="flex flex-col items-center space-y-3 p-4 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-1 shadow-lg">
+                <div className="relative w-12 h-12">
                   <Image
                     src="/pp.svg"
                     alt="PSN Token"
@@ -487,7 +488,7 @@ export default function ShopPage() {
 
               {/* EPSN Token */}
               <div className="flex flex-col items-center space-y-3 p-4 bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl border border-green-200/50 dark:border-green-800/50">
-                <div className="relative w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
+                <div className="relative w-12 h-12">
                   <Image
                     src="/le.png"
                     alt="EPSN Token"

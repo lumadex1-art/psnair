@@ -92,7 +92,7 @@ export default function LaunchpadPage() {
           <div className="flex items-center justify-center gap-6 mb-6">
             {/* LOBSTER Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-orange-400 to-red-500 p-1 shadow-lg">
+              <div className="relative w-14 h-14">
                 <Image
                   src="/lobster.png"
                   alt="LOBSTER Token"
@@ -106,7 +106,7 @@ export default function LaunchpadPage() {
 
             {/* PSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-1 shadow-lg">
+              <div className="relative w-14 h-14">
                 <Image
                   src="/pp.svg"
                   alt="PSN Token"
@@ -120,7 +120,7 @@ export default function LaunchpadPage() {
 
             {/* EPSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
+              <div className="relative w-14 h-14">
                 <Image
                   src="/le.png"
                   alt="EPSN Token"

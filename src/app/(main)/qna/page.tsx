@@ -108,7 +108,7 @@ export default function QnAPage() {
           <div className="flex items-center justify-center gap-6 mb-6">
             {/* EPSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-green-400 to-emerald-500 p-1 shadow-lg">
+              <div className="relative w-16 h-16">
                 <Image
                   src="/le.png"
                   alt="EPSN Token"
@@ -122,7 +122,7 @@ export default function QnAPage() {
 
             {/* PSN Token */}
             <div className="flex flex-col items-center gap-2">
-              <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 p-1 shadow-lg">
+              <div className="relative w-16 h-16">
                 <Image
                   src="/pp.svg"
                   alt="PSN Token"
