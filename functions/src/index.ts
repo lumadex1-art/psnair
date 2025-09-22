@@ -10,6 +10,9 @@ console.log('✅ Firebase Admin initialized.');
 // Import function modules
 import {corsCreateSolanaIntent, corsConfirmSolanaPayment} from "./cors-solana";
 import {
+  adminGetPaymentsHttp,
+  adminApprovePaymentHttp,
+  // Keep old callable functions for reference or gradual migration if needed
   adminGetPayments,
   adminApprovePayment,
   adminGetPendingPayments,
@@ -20,25 +23,24 @@ import { claimReward } from "./claim";
 import { processReferral, getReferralStats, validateReferralCode } from "./referral";
 
 
-// EXPORT FUNGSI CORS YANG DIBUTUHKAN
+// EXPORT HTTP-BASED SOLANA FUNCTIONS
 export const solanaCreateIntentCors = onRequest(corsCreateSolanaIntent);
 export const solanaConfirmCors = onRequest(corsConfirmSolanaPayment);
-
-// EXPORT FUNGSI DENGAN NAMA YANG DIHARAPKAN FRONTEND
 export const solanaCreateIntent = onRequest(corsCreateSolanaIntent);
 export const solanaConfirm = onRequest(corsConfirmSolanaPayment);
 
-// EXPORT FUNGSI CLAIM YANG SUDAH DIPERBAIKI
+// EXPORT HTTP-BASED ADMIN FUNCTIONS
+export const getAdminPayments = adminGetPaymentsHttp;
+export const approveAdminPayment = adminApprovePaymentHttp;
+
+
+// EXPORT CALLABLE FUNCTIONS
 export const claim = onCall(claimReward);
 
-// EXPORT FUNGSI ADMIN 
-export const adminGetPayments = onCall(adminGetPayments);
-export const adminApprovePayment = onCall(adminApprovePayment);
-export const adminGetPendingPayments = onCall(adminGetPendingPayments);
-export const adminGetAnalytics = onCall(adminGetAnalytics);
-export const adminRefundPayment = onCall(adminRefundPayment);
+// Admin callable functions (can be removed if fully migrated to HTTP)
+export { adminGetPayments, adminApprovePayment, adminGetPendingPayments, adminGetAnalytics, adminRefundPayment };
 
-// EXPORT FUNGSI REFERRAL
+// Referral callable functions
 export const referralProcess = onCall(processReferral);
 export const referralStats = onCall(getReferralStats);
 export const referralValidate = onCall(validateReferralCode);

@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils';
 import { PLAN_CONFIG } from '@/lib/config';
 import { useAppContext } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase'; // Import auth instance
+import { auth } from '@/lib/firebase'; 
 
 interface Transaction {
   id: string;
@@ -37,9 +37,9 @@ interface Transaction {
   amountLamports: number;
   currency: string;
   providerRef?: string;
-  createdAt: any;
-  confirmedAt?: any;
-  failedAt?: any;
+  createdAt: string;
+  confirmedAt?: string;
+  failedAt?: string;
 }
 
 interface PaymentStats {
@@ -53,10 +53,8 @@ interface PaymentStats {
 
 const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
 
-// Correct Cloud Functions v2 onCall URLs. Note: These are callable functions, not simple HTTP endpoints.
-// We are using authenticated fetch which simulates the SDK call structure.
-const GET_PAYMENTS_URL = 'https://admingetpayments-ivtinaswgq-uc.a.run.app';
-const APPROVE_PAYMENT_URL = 'https://adminapprovepayment-ivtinaswgq-uc.a.run.app';
+const GET_PAYMENTS_URL = 'https://getadminpayments-ivtinaswgq-uc.a.run.app';
+const APPROVE_PAYMENT_URL = 'https://approveadminpayment-ivtinaswgq-uc.a.run.app';
 
 
 export default function AdminPaymentsPage() {
@@ -70,7 +68,6 @@ export default function AdminPaymentsPage() {
   const [planFilter, setPlanFilter] = useState('all');
   const { toast } = useToast();
   
-  // Redirect if not admin
   useEffect(() => {
     if (!isAppLoading && (!user || user.uid !== ADMIN_UID)) {
       toast({
@@ -95,22 +92,18 @@ export default function AdminPaymentsPage() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      // v2 onCall functions expect the body to be wrapped in a 'data' object.
-      body: JSON.stringify({ data: body })
+      body: JSON.stringify(body) 
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: { message: 'Unknown server error' } }));
-        throw new Error(errorData.error?.message || `Request failed with status ${response.status}`);
+        const errorData = await response.json().catch(() => ({ error: 'Unknown server error' }));
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
     }
 
-    const responseData = await response.json();
-    // v2 onCall functions wrap the response in a 'result' object.
-    return responseData.result;
+    return await response.json();
   };
 
   const loadPaymentData = async () => {
-    // Ensure we only load data if an admin is logged in.
     if (!user || user.uid !== ADMIN_UID) {
       setLoading(false);
       return;
@@ -130,7 +123,7 @@ export default function AdminPaymentsPage() {
       } else {
         toast({
           title: "Error Loading Data",
-          description: data.message || "Failed to load payment data from the server.",
+          description: data.error || "Failed to load payment data from the server.",
           variant: "destructive",
         });
       }
@@ -168,7 +161,7 @@ export default function AdminPaymentsPage() {
       } else {
         toast({
           title: "Approval Failed",
-          description: data.message || "Failed to approve payment. The transaction might have issues.",
+          description: data.error || "Failed to approve payment. The transaction might have issues.",
           variant: "destructive",
         });
       }
@@ -200,7 +193,7 @@ export default function AdminPaymentsPage() {
       (tx.amountLamports / 1000000000).toFixed(4),
       tx.status,
       tx.planUpgraded ? 'Yes' : 'No',
-      new Date(tx.createdAt._seconds * 1000).toISOString(),
+      new Date(tx.createdAt).toISOString(),
       tx.providerRef || ''
     ].join(','));
     
@@ -418,7 +411,7 @@ export default function AdminPaymentsPage() {
                       <div className="text-left md:text-right mt-2 md:mt-0">
                         <p className="font-semibold">{(tx.amountLamports / 1000000000).toFixed(4)} SOL</p>
                         <p className="text-sm text-muted-foreground">
-                          {new Date(tx.createdAt._seconds * 1000).toLocaleString()}
+                          {new Date(tx.createdAt).toLocaleString()}
                         </p>
                       </div>
                     </div>
