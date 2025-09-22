@@ -157,7 +157,7 @@ export default function ClaimPage() {
               
               {/* Conversion Display */}
               <div className="space-y-3 pt-4 border-t border-border/30">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {/* IDR Conversion */}
                   <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-green-200/50 dark:border-green-800/50">
                     <div className="flex items-center gap-2 mb-2">
@@ -169,20 +169,6 @@ export default function ClaimPage() {
                     </p>
                     <p className="text-xs text-green-600/70 dark:text-green-400/70">
                       @ {EPSN_TO_IDR.toLocaleString()} IDR per EPSN
-                    </p>
-                  </div>
-
-                  {/* PSN Conversion */}
-                  <div className="bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">PSN Equivalent</span>
-                    </div>
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {balanceInPSN.toFixed(3)} PSN
-                    </p>
-                    <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
-                      @ {EPSN_TO_PSN.toLocaleString()} EPSN per PSN
                     </p>
                   </div>
                 </div>
