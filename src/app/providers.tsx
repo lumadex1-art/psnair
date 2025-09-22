@@ -5,7 +5,6 @@ import { AppProvider } from '@/contexts/AppContext';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
 import {
   PhantomWalletAdapter
 } from '@solana/wallet-adapter-phantom';
@@ -14,7 +13,8 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Mainnet;
-  const endpoint = useMemo(() => clusterApiUrl(network), [network]);
+  // Ganti endpoint RPC ke yang disediakan pengguna untuk mengatasi masalah 403 Forbidden
+  const endpoint = 'https://rpc-mainnet.solanatracker.io/?api_key=bb9aeffe-6d8f-4df1-a357-d0dfde36ee28';
   
   const wallets = useMemo(
     () => [
