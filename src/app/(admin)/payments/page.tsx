@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PLAN_CONFIG } from '@/lib/config';
-import { getFunctions, httpsCallable, Functions } from 'firebase/functions';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useAppContext } from '@/contexts/AppContext';
 import { useRouter } from 'next/navigation';
 import { app } from '@/lib/firebase'; // Import Firebase app instance
@@ -66,7 +66,7 @@ export default function AdminPaymentsPage() {
   const [planFilter, setPlanFilter] = useState('all');
   const { toast } = useToast();
   
-  // Explicitly initialize functions with region
+  // Explicitly initialize functions with app instance and region for reliability
   const functions = getFunctions(app, 'us-central1');
 
   // Redirect if not admin
@@ -83,6 +83,7 @@ export default function AdminPaymentsPage() {
 
   const loadPaymentData = async () => {
     try {
+      // Ensure we only run this if the user is the admin
       if (!user || user.uid !== ADMIN_UID) {
         setLoading(false);
         return;
@@ -124,10 +125,16 @@ export default function AdminPaymentsPage() {
 
   // Load data only when user is confirmed to be an admin
   useEffect(() => {
+    // Logging for debugging purposes
+    console.log('[Admin Page] Auth state check: isAppLoading:', isAppLoading, 'User:', user);
+
     if (!isAppLoading && user && user.uid === ADMIN_UID) {
+      console.log('[Admin Page] Admin confirmed. Loading payment data...');
       loadPaymentData();
+    } else {
+       console.log('[Admin Page] Conditions not met to load payment data.');
     }
-  }, [statusFilter, planFilter, user, isAppLoading]);
+  }, [statusFilter, planFilter, user, isAppLoading]); // Dependencies array is correct
 
   const handleApprovePayment = async (transactionId: string) => {
     try {
@@ -149,7 +156,7 @@ export default function AdminPaymentsPage() {
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: any) => {
       toast({
         title: "Error Approving Payment",
         description: error.message || "Failed to call the approve function.",
