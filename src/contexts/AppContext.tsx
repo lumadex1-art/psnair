@@ -335,6 +335,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!firebaseUser) {
         return { success: false, message: 'Please login first' };
       }
+      
+      const rewardAmount = state.userTier === 'Free' ? 1 : 10;
 
       // Simple idempotency key
       const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -360,7 +362,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setState((prevState) => {
             const newState = {
               ...prevState,
-              balance: firestoreData.balance || prevState.balance + 10,
+              balance: firestoreData.balance || prevState.balance + rewardAmount,
               lastClaimTimestamp: firestoreData.claimStats?.lastClaimAt?.toMillis() || Date.now(),
             };
             
@@ -374,7 +376,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           setState((prevState) => {
             const newState = {
               ...prevState,
-              balance: prevState.balance + 10,
+              balance: prevState.balance + rewardAmount,
               lastClaimTimestamp: Date.now(),
             };
             
@@ -382,14 +384,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             return newState;
           });
         }
-        return { success: true, message: data.message || 'Claimed successfully' };
+        return { success: true, message: data.message || `Claimed ${rewardAmount} EPSN successfully` };
       }
       return { success: false, message: data.message || 'Claim failed' };
     } catch (e: any) {
       console.error('Claim error:', e);
       return { success: false, message: e?.message || 'Network error' };
     }
- }, [firebaseUser, loadUserDataFromFirestore, saveStateToLocalStorage]);
+ }, [firebaseUser, state.userTier, loadUserDataFromFirestore, saveStateToLocalStorage]);
 
 
   const purchasePlan = useCallback((plan: UserTier) => {
@@ -408,3 +410,5 @@ export function useAppContext() {
   }
   return context;
 }
+
+    

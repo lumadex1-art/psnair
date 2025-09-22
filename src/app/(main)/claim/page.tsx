@@ -22,7 +22,7 @@ export default function ClaimPage() {
 
   const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
-  const rewardPerClaim = 10; // Amount of EPSN per claim
+  const rewardPerClaim = userTier === 'Free' ? 1 : 10; // Amount of EPSN per claim
 
   // Conversion rates
   const EPSN_TO_IDR = 500; // 1 EPSN = 500 IDR
@@ -303,4 +303,6 @@ export default function ClaimPage() {
     </div>
   );
 }
+    
+
     
