@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 const GoogleIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -20,10 +21,14 @@ const GoogleIcon = () => (
 
 
 export default function LoginPage() {
-  const { login, isLoggedIn } = useAppContext();
+  const { login, loginWithEmail, registerWithEmail, isLoggedIn } = useAppContext();
   const router = useRouter();
+  const { toast } = useToast();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   // Set to `true` to show email/password login, `false` to hide for deployment
   const showEmailLogin = true;
@@ -38,10 +43,27 @@ export default function LoginPage() {
     await login();
   };
 
-  const handleEmailLogin = (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would add your email/password login logic
-    alert(`Email login is not implemented yet for: ${email}`);
+    setIsSubmitting(true);
+    let result;
+
+    if (isRegistering) {
+      result = await registerWithEmail(email, password);
+    } else {
+      result = await loginWithEmail(email, password);
+    }
+
+    if (!result.success) {
+      toast({
+        variant: 'destructive',
+        title: 'Authentication Failed',
+        description: result.error,
+      });
+    }
+    
+    // onAuthStateChanged will redirect on success
+    setIsSubmitting(false);
   };
 
   return (
@@ -78,13 +100,15 @@ export default function LoginPage() {
           <Card className="border border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
             <CardHeader className="pb-4">
               <div className="text-center space-y-2">
-                <h2 className="text-xl font-semibold">Welcome Back</h2>
-                <p className="text-sm text-muted-foreground">Sign in to start earning rewards</p>
+                <h2 className="text-xl font-semibold">{isRegistering ? 'Create an Account' : 'Welcome Back'}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {isRegistering ? 'Sign up to start earning rewards' : 'Sign in to continue'}
+                </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {showEmailLogin && (
-                <form onSubmit={handleEmailLogin} className="space-y-4">
+                <form onSubmit={handleEmailAuth} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input 
@@ -94,6 +118,7 @@ export default function LoginPage() {
                       required 
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className="space-y-2">
@@ -101,12 +126,16 @@ export default function LoginPage() {
                     <Input 
                       id="password" 
                       type="password" 
-                      required 
+                      required
+                      placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      disabled={isSubmitting}
                     />
                   </div>
-                  <Button type="submit" className="w-full">Sign In</Button>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? 'Processing...' : (isRegistering ? 'Sign Up' : 'Sign In')}
+                  </Button>
                 </form>
               )}
               
@@ -129,15 +158,28 @@ export default function LoginPage() {
                 variant="outline"
                 className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-200"
                 size="lg"
+                disabled={isSubmitting}
               >
                 <GoogleIcon/>
                 <span className="ml-2 font-medium">Continue with Google</span>
               </Button>
 
               <div className="text-center pt-4 border-t border-border/30">
-                <p className="text-xs text-muted-foreground">
-                  🔒 Secure authentication for EpsilonDrop
-                </p>
+                {isRegistering ? (
+                  <p className="text-sm text-muted-foreground">
+                    Already have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
+                      Sign In
+                    </Button>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
+                      Sign Up
+                    </Button>
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
