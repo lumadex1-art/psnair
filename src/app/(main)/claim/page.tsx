@@ -143,10 +143,7 @@ export default function ClaimPage() {
         <Card className="border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-2xl shadow-primary/10 overflow-hidden">
           <CardHeader className="text-center p-8 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="relative mx-auto mb-4">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/20 to-primary/30 rounded-full blur-lg" />
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30 shadow-xl p-2">
-                <Image src="/le.png" alt="EPSN Token" width={64} height={64} className="animate-pulse" />
-              </div>
+              <Image src="/le.png" alt="EPSN Token" width={80} height={80} className="animate-pulse" />
             </div>
             
             <div className="space-y-4">
@@ -303,6 +300,8 @@ export default function ClaimPage() {
     </div>
   );
 }
+
+    
 
     
 
