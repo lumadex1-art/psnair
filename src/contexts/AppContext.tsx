@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -92,16 +93,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Load user data from Firestore - Simple approach
   const loadUserDataFromFirestore = useCallback(async (uid: string) => {
+    console.log('[DEBUG] 1. loadUserDataFromFirestore called for UID:', uid);
     try {
       const userDocRef = doc(db, 'users', uid);
       const userDoc = await getDoc(userDocRef);
       
       if (userDoc.exists()) {
+        console.log('[DEBUG] 2. User document exists in Firestore.');
         const userData = userDoc.data();
         
         // Check if balance exists, if not calculate from claims
         if (userData.balance === undefined || userData.balance === null) {
-          
+          console.log('[DEBUG] 2a. Balance missing, calculating from claims...');
           // Calculate balance from claims collection
           const balanceCalculation = await calculateUserBalance(uid);
           
@@ -123,6 +126,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }));
           }
         } else {
+          console.log('[DEBUG] 2b. Balance exists, loading from Firestore data.');
           // Update state with Firestore data directly
           setState(prevState => ({
             ...prevState,
@@ -135,9 +139,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return userData;
       } else {
-        
+        console.log('[DEBUG] 2. User document does NOT exist. Creating new user document...');
         // Generate unique referral code for new user
         const referralCode = await generateUniqueReferralCode(uid);
+        console.log('[DEBUG] 3. Generated unique referral code:', referralCode);
         
         // Create user document with 0 balance and referral code
         const newUserData = {
@@ -159,18 +164,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
         
         await setDoc(userDocRef, newUserData);
+        console.log('[DEBUG] 4. New user document created in Firestore.');
         
-        setState(prevState => ({
-          ...prevState,
-          balance: 0,
-          userTier: 'Free',
-          lastClaimTimestamp: null,
-          referralCode: referralCode,
-        }));
+        setState(prevState => {
+            const finalState = {
+                ...prevState,
+                balance: 0,
+                userTier: 'Free' as UserTier,
+                lastClaimTimestamp: null,
+                referralCode: referralCode,
+            };
+            console.log('[DEBUG] 5. Setting state for new user:', finalState);
+            return finalState;
+        });
         
         return newUserData;
       }
     } catch (error) {
+      console.error('[DEBUG] Error in loadUserDataFromFirestore:', error);
       return null;
     }
   }, []);
@@ -185,6 +196,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
+      console.log('[DEBUG] onAuthStateChanged triggered. User:', fbUser?.uid || 'null');
       setFirebaseUser(fbUser);
       if (fbUser) {
         setIsLoggedIn(true);
@@ -218,6 +230,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               lastClaimTimestamp: firestoreData.claimStats?.lastClaimAt?.toMillis() || null,
               referralCode: firestoreData.referralCode || prevState.referralCode,
             };
+            console.log('[DEBUG] Final state update (existing user):', updatedState);
             saveStateToLocalStorage(fbUser.uid, updatedState);
             return updatedState;
           });
@@ -240,6 +253,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 userTier: firestoreData?.plan?.id || 'Free',
                 lastClaimTimestamp: firestoreData?.claimStats?.lastClaimAt?.toMillis() || null,
               };
+              console.log('[DEBUG] Final state update (new user fallback):', newState);
               saveStateToLocalStorage(fbUser.uid, newState);
               return newState;
           });
@@ -261,6 +275,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await signInWithPopup(auth, googleProvider);
       // onAuthStateChanged will handle the rest
     } catch (error) {
+      console.error('[DEBUG] Login error:', error);
       setIsLoading(false);
     }
   }, []);
@@ -385,3 +400,5 @@ export function useAppContext() {
   }
   return context;
 }
+
+    
