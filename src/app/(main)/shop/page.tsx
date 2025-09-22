@@ -13,7 +13,7 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
-
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { PLAN_CONFIG } from '@/lib/config';
 
 type Tier = keyof typeof PLAN_CONFIG.PRICES;
@@ -131,28 +131,12 @@ export default function ShopPage() {
         return;
       }
 
-      // Create server intent via HTTPS Function
-      const { getAuth } = await import('firebase/auth');
-      const auth = getAuth();
-      const user = auth.currentUser;
+      // Create server intent via HTTPS Function using httpsCallable
+      const functions = getFunctions();
+      const createIntentFunction = httpsCallable(functions, 'solanaCreateIntent');
       
-      if (!user) {
-        toast({ variant: 'destructive', title: 'Authentication required', description: 'Please login first.' });
-        return;
-      }
-      
-      const token = await user.getIdToken();
-      
-      const response = await fetch('/api/solanaCreateIntentCors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ planId: plan })
-      });
-      
-      const intent = await response.json();
+      const intentResult = await createIntentFunction({ planId: plan });
+      const intent = intentResult.data as any;
       
       if (!intent?.success) {
         toast({ variant: 'destructive', title: 'Intent failed', description: intent?.message || 'Unable to create intent' });
@@ -178,16 +162,9 @@ export default function ShopPage() {
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
       // Confirm payment via HTTPS Function
-      const confirmResponse = await fetch('/api/solanaConfirmCors', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ transactionId, signature })
-      });
-      
-      const confirmData = await confirmResponse.json();
+      const confirmFunction = httpsCallable(functions, 'solanaConfirm');
+      const confirmResult = await confirmFunction({ transactionId, signature });
+      const confirmData = confirmResult.data as any;
       
       if (!confirmData?.success) {
         toast({ variant: 'destructive', title: 'Verification failed', description: confirmData?.message || 'Server could not verify payment' });
