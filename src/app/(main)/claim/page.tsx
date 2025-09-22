@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -143,8 +144,8 @@ export default function ClaimPage() {
           <CardHeader className="text-center p-8 bg-gradient-to-br from-primary/5 to-transparent">
             <div className="relative mx-auto mb-4">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-primary/20 to-primary/30 rounded-full blur-lg" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30 shadow-xl">
-                <Coins className="h-8 w-8 text-primary animate-pulse" />
+              <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30 shadow-xl p-2">
+                <Image src="/le.png" alt="EPSN Token" width={64} height={64} className="animate-pulse" />
               </div>
             </div>
             
@@ -302,5 +303,7 @@ export default function ClaimPage() {
     </div>
   );
 }
+
+    
 
     
