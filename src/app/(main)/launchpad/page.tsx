@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -29,18 +30,18 @@ const presaleTokens = [
     name: 'BRICS Token',
     symbol: 'BRICS',
     description: 'Multi-national economic alliance token for cross-border transactions.',
-    logo: '/epsn.png',
+    logo: '/br.png',
     gradient: 'from-green-500 to-emerald-600',
     status: 'active',
     features: ['Cross-border Payments', 'Trade Finance', 'Yield Farming', 'DAO Voting'],
-    presaleUrl: 'https://brics-token.com/presale'
+    presaleUrl: 'https://bricstoken.live'
   },
   {
     id: 'lumadex',
     name: 'LumaDEX',
     symbol: 'LUMA',
     description: 'Decentralized exchange token with automated market making features.',
-    logo: '/lobster.png',
+    logo: '/luma.svg',
     gradient: 'from-yellow-500 to-orange-600',
     status: 'active',
     features: ['LP Rewards', 'Trading Fee Share', 'Governance', 'Yield Optimization'],
@@ -48,14 +49,14 @@ const presaleTokens = [
   },
   {
     id: 'blc',
-    name: 'Blockchain Capital',
+    name: 'Blocoin',
     symbol: 'BLC',
     description: 'Investment fund token for blockchain and DeFi project funding.',
-    logo: '/pp.svg',
+    logo: '/bb.png',
     gradient: 'from-purple-500 to-pink-600',
-    status: 'coming-soon',
+    status: 'active',
     features: ['Fund Returns', 'Project Access', 'Premium Analytics', 'Early Investments'],
-    presaleUrl: 'https://blockchain-capital.com/presale'
+    presaleUrl: 'https://blocoin.io'
   }
 ];
 
