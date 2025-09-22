@@ -6,7 +6,7 @@ import { BalanceStatus } from '@/components/BalanceStatus';
 import { ReferralCode } from '@/components/ReferralCode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, Coins, Star, Repeat, Copy, Users } from 'lucide-react';
+import { LogOut, Coins, Star, Repeat, Copy, Users, Map } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -127,14 +127,14 @@ export default function ProfilePage() {
         
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
-          <Link href="/swap" className="block">
+          <Link href="/roadmap" className="block">
             <Card className="border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 cursor-pointer group">
               <CardContent className="p-6 text-center">
                 <div className="relative mx-auto mb-3 w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 group-hover:scale-110 transition-transform duration-300">
-                  <Repeat className="h-6 w-6 text-blue-500" />
+                  <Map className="h-6 w-6 text-blue-500" />
                 </div>
-                <p className="font-semibold text-foreground">Swap Tokens</p>
-                <p className="text-xs text-muted-foreground mt-1">Exchange EPSN</p>
+                <p className="font-semibold text-foreground">Roadmap</p>
+                <p className="text-xs text-muted-foreground mt-1">Project timeline</p>
               </CardContent>
             </Card>
           </Link>

@@ -17,7 +17,7 @@ const navItems = [
   { href: '/claim', icon: Coins, label: 'Claim' },
   { href: '/shop', icon: ShoppingBag, label: 'Shop' },
   { href: '/launchpad', icon: Rocket, label: 'Launchpad' },
-  { href: '/roadmap', icon: Map, label: 'Roadmap' },
+  { href: '/qna', icon: HelpCircle, label: 'QnA' },
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
