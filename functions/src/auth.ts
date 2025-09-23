@@ -1,22 +1,65 @@
 
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import * as cors from "cors";
 import { PlanUtils } from "./config/plans";
-import { Request, Response } from "firebase-functions";
 
+// CORS headers with development support (manual, consistent with cors-solana.ts)
+const setCorsHeaders = (res: any, req: any) => {
+  const origin = (req.headers.origin || req.get?.('Origin')) as string | undefined;
 
-const db = admin.firestore();
-const auth = admin.auth();
+  const allowedOrigins = [
+    'https://psnchainaidrop.digital',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://localhost:3000',
+    'https://localhost:3001',
+    'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
+  ];
+
+  const isFirebaseStudio = !!origin && (
+    origin.includes('firebase-studio') ||
+    origin.includes('cloudworkstations.dev') ||
+    origin.includes('web.app') ||
+    origin.includes('firebaseapp.com')
+  );
+
+  // Ensure caches don't coalesce different origins
+  res.set('Vary', 'Origin, Access-Control-Request-Headers');
+
+  if (origin && (allowedOrigins.includes(origin) || isFirebaseStudio)) {
+    res.set('Access-Control-Allow-Origin', origin);
+  } else {
+    // Fallback to production domain
+    res.set('Access-Control-Allow-Origin', 'https://psnchainaidrop.digital');
+  }
+
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+
+  // Reflect requested headers if provided, otherwise use a safe default
+  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined) || 'Content-Type, Authorization';
+  res.set('Access-Control-Allow-Headers', requestedHeaders);
+
+  res.set('Access-Control-Allow-Credentials', 'true');
+  // Cache preflight for a day to reduce OPTIONS traffic
+  res.set('Access-Control-Max-Age', '86400');
+};
 
 // --- TOKEN VERIFICATION (Called by the client-side) ---
-export const verifyAuthToken = async (req: Request, res: Response) => {
+export const verifyAuthToken = onRequest(async (req, res) => {
+    // Handle CORS preflight and set headers
+    setCorsHeaders(res as any, req as any);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
     }
 
     try {
+        const db = admin.firestore();
         const { token } = req.body;
         if (!token) {
             res.status(400).json({ success: false, error: "Token is required" });
@@ -42,7 +85,7 @@ export const verifyAuthToken = async (req: Request, res: Response) => {
         
         const { uid } = tokenData;
         await tokenRef.delete();
-        const firebaseToken = await auth.createCustomToken(uid);
+        const firebaseToken = await admin.auth().createCustomToken(uid);
 
         res.status(200).json({ success: true, firebaseToken });
 
@@ -50,19 +93,22 @@ export const verifyAuthToken = async (req: Request, res: Response) => {
         console.error("Error verifying auth token:", error);
         res.status(500).json({ success: false, error: "Internal server error" });
     }
-};
+});
 
 
-// --- LOGIN LINK CREATION ---
-export const createLoginLink = async (req: Request, res: Response) => {
+// --- LOGIN LINK CREATION (Callable function for internal/admin use) ---
+export const createLoginLink = onRequest(async (req, res) => {
+    setCorsHeaders(res as any, req as any);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
     }
     
-    // This is a sensitive function, so we should protect it.
-    // For now, let's assume it's called by an admin or a trusted service.
-    // A more robust solution would check for an admin auth token.
     const { uid } = req.body;
     if (!uid) {
         res.status(400).json({ error: "UID is required" });
@@ -70,12 +116,13 @@ export const createLoginLink = async (req: Request, res: Response) => {
     }
 
     try {
+        const db = admin.firestore();
         // Use Firestore's auto-ID for a secure, unique token
         const tokenRef = db.collection('authTokens').doc();
         const token = tokenRef.id;
 
         const expiresAt = new Date();
-        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minute validity
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10);
 
         await tokenRef.set({
             uid: uid,
@@ -90,10 +137,16 @@ export const createLoginLink = async (req: Request, res: Response) => {
         console.error("Error creating login link:", error);
         res.status(500).json({ error: "Could not create login link" });
     }
-};
+});
 
-// --- PAYMENT LINK CREATION ---
-export const createPaymentLink = async (req: Request, res: Response) => {
+// --- PAYMENT LINK CREATION (Callable, requires auth) ---
+export const createPaymentLink = onRequest(async (req, res) => {
+    setCorsHeaders(res as any, req as any);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
@@ -101,7 +154,7 @@ export const createPaymentLink = async (req: Request, res: Response) => {
 
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
+        res.status(401).json({ error: 'Unauthorized' });
         return;
     }
 
@@ -116,6 +169,7 @@ export const createPaymentLink = async (req: Request, res: Response) => {
             return;
         }
 
+        const db = admin.firestore();
         // Use Firestore's auto-ID for a secure, unique token
         const paymentIntentRef = db.collection('paymentIntents').doc();
         const paymentToken = paymentIntentRef.id;
@@ -134,18 +188,20 @@ export const createPaymentLink = async (req: Request, res: Response) => {
         const link = `https://psnchainaidrop.digital/pay/${paymentToken}`;
         res.status(200).json({ success: true, link, token: paymentToken });
 
-    } catch (error: any) {
+    } catch (error) {
         console.error("Error creating payment link:", error);
-         if (error.code === 'auth/id-token-expired') {
-            res.status(401).json({ error: 'Token expired, please re-authenticate' });
-        } else {
-            res.status(500).json({ error: 'Could not create payment link' });
-        }
+        res.status(500).json({ error: 'Could not create payment link' });
     }
-};
+});
 
 // --- GET PAYMENT LINK DETAILS (Public, no auth needed) ---
-export const getPaymentLinkDetails = async (req: Request, res: Response) => {
+export const getPaymentLinkDetails = onRequest(async (req, res) => {
+    setCorsHeaders(res as any, req as any);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
@@ -158,6 +214,7 @@ export const getPaymentLinkDetails = async (req: Request, res: Response) => {
     }
     
     try {
+        const db = admin.firestore();
         const intentRef = db.collection('paymentIntents').doc(token);
         const intentDoc = await intentRef.get();
 
@@ -169,7 +226,6 @@ export const getPaymentLinkDetails = async (req: Request, res: Response) => {
         const intentData = intentDoc.data()!;
         const now = admin.firestore.Timestamp.now();
         if (intentData.expiresAt < now) {
-            await intentRef.delete(); // Clean up expired link
             res.status(404).json({ error: "Payment link has expired" });
             return;
         }
@@ -182,7 +238,7 @@ export const getPaymentLinkDetails = async (req: Request, res: Response) => {
         const planDetails = PlanUtils.getPlanById(intentData.planId);
 
         if (!userDoc.exists() || !planDetails) {
-             res.status(404).json({ error: "Invalid user or plan details associated with this link" });
+             res.status(404).json({ error: "Invalid user or plan details" });
             return;
         }
         
@@ -199,4 +255,4 @@ export const getPaymentLinkDetails = async (req: Request, res: Response) => {
         console.error("Error getting payment link details:", error);
         res.status(500).json({ error: "Internal server error" });
     }
-};
+});
