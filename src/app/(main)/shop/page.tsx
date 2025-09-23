@@ -135,30 +135,47 @@ export default function ShopPage() {
   const handleCreatePaymentLink = async (planId: Tier) => {
     if (!user) return;
     setIsCreatingLink(true);
+    setPaymentLink('');
+
     try {
+        const { getAuth } = await import('firebase/auth');
+        const auth = getAuth();
         const currentUser = auth.currentUser;
-        if (!currentUser) throw new Error("User not authenticated");
-        const token = await currentUser.getIdToken();
-
-        const response = await fetch('https://createpaymentlink-ivtinaswgq-uc.a.run.app', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ planId }),
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            setPaymentLink(data.link);
-            setIsLinkDialogOpen(true);
-        } else {
-            throw new Error(data.error || 'Failed to create link.');
+        if (!currentUser) {
+          toast({ variant: 'destructive', title: 'Authentication Error', description: 'Please login first.' });
+          return;
         }
+        const idToken = await currentUser.getIdToken();
+
+        const base = process.env.NEXT_PUBLIC_FUNCTIONS_ORIGIN 
+            || 'https://us-central1-studio-2714959067-22ea0.cloudfunctions.net';
+
+        const res = await fetch(`${base}/createPaymentLink`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ planId }),
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok || !data?.success) {
+          console.error('createPaymentLink failed:', data);
+          throw new Error(data?.error || 'Failed to create payment link. Please try again later.');
+        }
+        
+        setPaymentLink(data.link);
+        setIsLinkDialogOpen(true);
+
     } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error', description: error.message });
+        toast({ variant: 'destructive', title: 'Error Creating Link', description: error.message });
     } finally {
         setIsCreatingLink(false);
     }
   };
+
 
   const copyLink = () => {
     navigator.clipboard.writeText(paymentLink);
@@ -191,6 +208,8 @@ export default function ShopPage() {
               const pricing = planPricing[plan.name];
               const isCurrentPlan = userTier === plan.name;
               const isProcessing = purchasingPlan === plan.name;
+              const isLinkCreationInProgress = isCreatingLink && purchasingPlan === plan.name;
+
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
                   {plan.isPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"><Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1 shadow-lg animate-pulse">⭐ MOST POPULAR</Badge></div>}
@@ -232,9 +251,18 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isCreatingLink || isProcessing || !!purchasingPlan} className="h-12 font-semibold text-base px-4">
-                          <LinkIcon className="mr-2 h-4 w-4" />
-                          {isCreatingLink ? 'Creating...' : 'Create Payment Link'}
+                      <Button variant="outline" onClick={() => { setPurchasingPlan(plan.name); handleCreatePaymentLink(plan.name); }} disabled={isCurrentPlan || isCreatingLink || isProcessing || !!purchasingPlan} className="w-full sm:w-auto h-12 font-semibold text-base px-4">
+                          {isLinkCreationInProgress ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                             <>
+                              <LinkIcon className="mr-2 h-4 w-4" />
+                              Create Payment Link
+                            </>
+                          )}
                       </Button>
                     </div>
                   </CardContent>
