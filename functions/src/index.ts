@@ -18,6 +18,7 @@ const corsMiddleware = cors({
     'http://localhost:3001',
     'https://localhost:3000',
     'https://localhost:3001',
+    'https://psnaidrop.app', // Added production domain
     'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
   ],
   methods: 'GET, POST, OPTIONS',
@@ -57,7 +58,7 @@ import {
 } from "./admin";
 import { claimReward } from "./claim";
 import { processReferral, getReferralStats, validateReferralCode } from "./referral";
-import { createPaymentLink, getPaymentLinkDetails } from './auth';
+import { createPaymentLinkHttp, getPaymentLinkDetailsHttp } from './auth';
 
 
 // --- EXPORT HTTP-BASED FUNCTIONS WITH CORS WRAPPER ---
@@ -73,8 +74,7 @@ export const getAdminPayments = withCors(adminGetPaymentsHttp);
 export const approveAdminPayment = withCors(adminApprovePaymentHttp); // Renaming for clarity
 
 // Auth and Payment Link functions
-export const createPaymentLinkHttp = withCors(createPaymentLink);
-export const getPaymentLinkDetailsHttp = withCors(getPaymentLinkDetails);
+export { createPaymentLinkHttp, getPaymentLinkDetailsHttp };
 
 
 // --- EXPORT CALLABLE FUNCTIONS (No CORS needed as it's handled by Firebase) ---

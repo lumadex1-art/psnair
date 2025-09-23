@@ -174,7 +174,7 @@ export default function ShopPage() {
         const base = process.env.NEXT_PUBLIC_FUNCTIONS_ORIGIN 
             || 'https://us-central1-studio-2714959067-22ea0.cloudfunctions.net';
 
-        const res = await fetch(`${base}/createPaymentLink`, {
+        const res = await fetch(`${base}/createPaymentLinkHttp`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -316,19 +316,6 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="sm:w-auto w-full h-10 font-semibold text-sm">
-                          {isLinkCreationInProgress ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Creating...
-                            </>
-                          ) : (
-                             <>
-                              <LinkIcon className="mr-2 h-4 w-4" />
-                              Create Link
-                            </>
-                          )}
-                      </Button>
                       <Button variant="outline" onClick={() => handleOpenBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
                         <Landmark className="mr-2 h-4 w-4" />
                         Bank Transfer
@@ -372,6 +359,18 @@ export default function ShopPage() {
                     <p className="font-bold text-xl">{bankTransferDetails?.planName}</p>
                     <p className="font-semibold text-lg">{bankTransferDetails?.planPrice}</p>
                 </div>
+
+                {/* Activation Notice */}
+                <div className="flex items-start gap-3 rounded-lg border border-orange-200/80 bg-orange-50/80 p-3 dark:border-orange-800/50 dark:bg-orange-900/20">
+                    <Hourglass className="h-5 w-5 flex-shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+                    <div className="flex-1">
+                        <h4 className="font-semibold text-sm text-orange-700 dark:text-orange-300">Aktivasi Kilat! 🚀</h4>
+                        <p className="text-xs text-orange-600 dark:text-orange-400/80">
+                            Paket Anda akan aktif dalam maksimal 24 jam setelah konfirmasi pembayaran kami terima.
+                        </p>
+                    </div>
+                </div>
+
                 {/* Form Inputs */}
                 <div className="space-y-3">
                     <div>

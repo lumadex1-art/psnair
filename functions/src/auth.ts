@@ -5,51 +5,13 @@ import { PlanUtils } from "./config/plans";
 import { generateUniqueReferralCode } from "../../utils/referralCode";
 import { Timestamp } from "firebase-admin/firestore";
 
-// CORS headers with development support (manual, consistent with cors-solana.ts)
-const setCorsHeaders = (res: any, req: any) => {
-  const origin = (req.headers.origin || req.get?.('Origin')) as string | undefined;
-
-  const allowedOrigins = [
-    'https://psnchainaidrop.digital',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://localhost:3000',
-    'https://localhost:3001',
-    'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
-  ];
-
-  const isFirebaseStudio = !!origin && (
-    origin.includes('firebase-studio') ||
-    origin.includes('cloudworkstations.dev') ||
-    origin.includes('web.app') ||
-    origin.includes('firebaseapp.com')
-  );
-
-  // Ensure caches don't coalesce different origins
-  res.set('Vary', 'Origin, Access-Control-Request-Headers');
-
-  if (origin && (allowedOrigins.includes(origin) || isFirebaseStudio)) {
-    res.set('Access-Control-Allow-Origin', origin);
-  } else {
-    // Fallback to production domain
-    res.set('Access-Control-Allow-Origin', 'https://psnchainaidrop.digital');
-  }
-
-  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-
-  // Reflect requested headers if provided, otherwise use a safe default
-  const requestedHeaders = (req.headers['access-control-request-headers'] as string | undefined) || 'Content-Type, Authorization';
-  res.set('Access-Control-Allow-Headers', requestedHeaders);
-
-  res.set('Access-Control-Allow-Credentials', 'true');
-  // Cache preflight for a day to reduce OPTIONS traffic
-  res.set('Access-Control-Max-Age', '86400');
-};
-
 // --- PAYMENT LINK CREATION (Callable, requires auth) ---
-export const createPaymentLink = onRequest(async (req, res) => {
-    setCorsHeaders(res as any, req as any);
+export const createPaymentLinkHttp = onRequest(async (req, res) => {
+    // This is a simplified CORS setup. In a real app, you might use the `cors` package.
+    res.set('Access-Control-Allow-Origin', '*');
     if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Methods', 'POST');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
         res.status(204).send('');
         return;
     }
@@ -92,7 +54,7 @@ export const createPaymentLink = onRequest(async (req, res) => {
             expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
         });
         
-        const link = `https://psnchainaidrop.digital/pay/${paymentToken}`;
+        const link = `https://psnaidrop.app/pay/${paymentToken}`; // Use your production domain
         res.status(200).json({ success: true, link, token: paymentToken });
 
     } catch (error) {
@@ -102,13 +64,14 @@ export const createPaymentLink = onRequest(async (req, res) => {
 });
 
 // --- GET PAYMENT LINK DETAILS (Public, no auth needed) ---
-export const getPaymentLinkDetails = onRequest(async (req, res) => {
-    setCorsHeaders(res as any, req as any);
-    if (req.method === 'OPTIONS') {
+export const getPaymentLinkDetailsHttp = onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+     if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Methods', 'POST');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
         res.status(204).send('');
         return;
     }
-
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
         return;
@@ -133,6 +96,7 @@ export const getPaymentLinkDetails = onRequest(async (req, res) => {
         const intentData = intentDoc.data()!;
         const now = admin.firestore.Timestamp.now();
         if (intentData.expiresAt < now) {
+            await intentRef.update({ status: 'expired' });
             res.status(404).json({ error: "Payment link has expired" });
             return;
         }
