@@ -72,7 +72,7 @@ interface PlanPricing {
 export default function ShopPage() {
   const { userTier, purchasePlan } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, signTransaction } = useWallet();
+  const { connected, publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
@@ -121,7 +121,7 @@ export default function ShopPage() {
   }, []);
 
   const handlePurchase = async (plan: Tier) => {
-    if (!connected || !publicKey || !signTransaction) {
+    if (!connected || !publicKey || !sendTransaction) {
       toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
       return;
     }
@@ -170,16 +170,13 @@ export default function ShopPage() {
       tx.feePayer = publicKey;
       tx.recentBlockhash = blockhash;
       
-      // 4. Explicitly sign the transaction with the user's wallet
-      const signedTransaction = await signTransaction(tx);
-
-      // 5. Send the raw, signed transaction to the network
-      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+      // 4. Send the transaction directly via the wallet adapter
+      const signature = await sendTransaction(tx, connection);
       
-      // 6. Confirm the transaction on-chain
+      // 5. Confirm the transaction on-chain
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
-      // 7. Confirm payment with our backend
+      // 6. Confirm payment with our backend
       const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
          method: 'POST',
          headers: {
@@ -195,7 +192,7 @@ export default function ShopPage() {
         throw new Error(confirmData.error || 'Server could not verify payment');
       }
 
-      // 8. Apply plan locally after successful payment
+      // 7. Apply plan locally after successful payment
       purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan.` });
     } catch (err: any) {
