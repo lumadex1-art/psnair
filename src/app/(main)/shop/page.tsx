@@ -154,29 +154,32 @@ export default function ShopPage() {
       const lamports: number = intent.amountLamports;
       const transactionId: string = intent.transactionId;
 
-      // Build transfer transaction
+      // 1. Get the latest blockhash
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-      const tx = new Transaction({
-        recentBlockhash: blockhash,
-        feePayer: publicKey,
-      }).add(
+
+      // 2. Create a new transaction
+      const tx = new Transaction().add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: MERCHANT_WALLET,
           lamports,
         })
       );
+
+      // 3. Set the fee payer and recent blockhash
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = blockhash;
       
-      // Explicitly sign the transaction with the user's wallet
+      // 4. Explicitly sign the transaction with the user's wallet
       const signedTransaction = await signTransaction(tx);
 
-      // Send the raw, signed transaction to the network
+      // 5. Send the raw, signed transaction to the network
       const signature = await connection.sendRawTransaction(signedTransaction.serialize());
       
-      // Confirm the transaction on-chain
+      // 6. Confirm the transaction on-chain
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
-      // Confirm payment via HTTPS Function
+      // 7. Confirm payment with our backend
       const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
          method: 'POST',
          headers: {
@@ -192,7 +195,7 @@ export default function ShopPage() {
         throw new Error(confirmData.error || 'Server could not verify payment');
       }
 
-      // Apply plan locally after successful payment
+      // 8. Apply plan locally after successful payment
       purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan.` });
     } catch (err: any) {
@@ -551,5 +554,3 @@ export default function ShopPage() {
     </div>
   );
 }
-
-    
