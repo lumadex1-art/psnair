@@ -11,24 +11,14 @@ const MERCHANT_WALLET = new PublicKey("Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8v
 
 // Konfigurasi CORS terpusat
 const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    // Daftar domain yang diizinkan
-    const allowedOrigins = [
-      'https://psnchainaidrop.digital',
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'https://localhost:3000',
-      'https://localhost:3001',
-      'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
-    ];
-    
-    // Izinkan jika origin ada di daftar atau jika origin tidak ada (misalnya, dari Postman atau server-side)
-    if (!origin || allowedOrigins.includes(origin) || origin.includes('firebase-studio') || origin.includes('cloudworkstations.dev')) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    'https://psnchainaidrop.digital',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://localhost:3000',
+    'https://localhost:3001',
+    'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
+  ],
   methods: 'GET, POST, OPTIONS',
   allowedHeaders: 'Content-Type, Authorization',
   credentials: true,
@@ -41,7 +31,6 @@ const corsMiddleware = cors(corsOptions);
 const withCors = (handler: (req: Request, res: Response) => Promise<void>) => {
   return (req: Request, res: Response) => {
     corsMiddleware(req, res, async () => {
-      // Jika method adalah OPTIONS (preflight), CORS middleware sudah menangani, cukup kirim 204
       if (req.method === 'OPTIONS') {
         res.status(204).send('');
         return;
