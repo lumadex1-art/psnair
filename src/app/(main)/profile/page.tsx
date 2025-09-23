@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAppContext } from '@/contexts/AppContext';
@@ -77,17 +78,12 @@ export default function ProfilePage() {
           {/* User Info */}
           <div className="text-center space-y-3">
             <h1 className="font-headline text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-              {user.name.includes('@') ? user.name.split('@')[0] : user.name}
+              {user.name}
             </h1>
             <p className="text-muted-foreground text-lg flex items-center justify-center gap-2">
-              <span>@{user.username}</span>
+              <span>{`@${user.username}`}</span>
               <span className="text-primary">✨</span>
             </p>
-            {user.name.includes('@') && (
-              <p className="text-xs text-muted-foreground">
-                {user.name}
-              </p>
-            )}
             
             {/* Stats Row */}
             <div className="flex items-center justify-center gap-6 pt-2">

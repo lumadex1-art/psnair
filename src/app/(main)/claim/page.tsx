@@ -22,7 +22,7 @@ export default function ClaimPage() {
 
   const claimsPerDay = PLAN_CONFIG.FEATURES[userTier]?.maxDailyClaims || 1;
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
-  const rewardPerClaim = userTier === 'Free' ? 1 : 10; // Amount of EPSN per claim
+  const rewardPerClaim = PLAN_CONFIG.FEATURES[userTier]?.rewardPerClaim || 1; 
 
   // Conversion rates
   const EPSN_TO_IDR = 500; // 1 EPSN = 500 IDR
@@ -112,7 +112,7 @@ export default function ClaimPage() {
               </div>
               <div>
                 <h2 className="font-bold text-xl text-foreground">
-                  {user.name.includes('@') ? user.name.split('@')[0] : user.name}
+                  {user.name}
                 </h2>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <span>Welcome back!</span>
@@ -303,6 +303,3 @@ export default function ClaimPage() {
     </div>
   );
 }
-    
-
-    

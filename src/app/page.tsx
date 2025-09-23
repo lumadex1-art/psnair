@@ -6,60 +6,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Image from 'next/image';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export default function LoginPage() {
-  const { loginWithEmail, registerWithEmail, isLoggedIn } = useAppContext();
+  const { isLoggedIn } = useAppContext();
+  const { connected } = useWallet();
   const router = useRouter();
-  const { toast } = useToast();
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
-    if (isLoggedIn) {
+    // If wallet is connected and app context is logged in, redirect
+    if (isLoggedIn && connected) {
       router.replace('/claim');
     }
-  }, [isLoggedIn, router]);
-
-  const handleEmailAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    let result;
-
-    if (isRegistering) {
-      result = await registerWithEmail(email, password);
-      if (result.success && result.message) {
-        toast({
-          title: 'Registration Successful',
-          description: result.message,
-        });
-        // Clear form and switch to login view
-        setEmail('');
-        setPassword('');
-        setIsRegistering(false);
-      }
-    } else {
-      result = await loginWithEmail(email, password);
-    }
-
-    if (!result.success) {
-      toast({
-        variant: 'destructive',
-        title: isRegistering ? 'Registration Failed' : 'Authentication Failed',
-        description: result.error,
-      });
-    }
-    
-    // onAuthStateChanged will redirect on successful verified login
-    setIsSubmitting(false);
-  };
+  }, [isLoggedIn, connected, router]);
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
@@ -95,67 +57,24 @@ export default function LoginPage() {
           <Card className="border border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
             <CardHeader className="pb-4">
               <div className="text-center space-y-2">
-                <h2 className="text-xl font-semibold">{isRegistering ? 'Create an Account' : 'Welcome Back'}</h2>
+                <h2 className="text-xl font-semibold">Join the Airdrop</h2>
                 <p className="text-sm text-muted-foreground">
-                  {isRegistering ? 'Sign up to start earning rewards' : 'Sign in to continue'}
+                  Connect your Solana wallet to begin
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <form onSubmit={handleEmailAuth} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="name@example.com" 
-                    required 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isSubmitting}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Processing...' : (isRegistering ? 'Sign Up' : 'Sign In')}
-                </Button>
-              </form>
-              
-              <div className="text-center pt-4 border-t border-border/30">
-                {isRegistering ? (
-                  <p className="text-sm text-muted-foreground">
-                    Already have an account?{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
-                      Sign In
-                    </Button>
-                  </p>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Don't have an account?{' '}
-                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
-                      Sign Up
-                    </Button>
-                  </p>
-                )}
-              </div>
+               <WalletMultiButton className="!w-full !bg-primary !text-primary-foreground !h-12 !text-base !font-bold hover:!bg-primary/90 !transition-all !duration-200 !rounded-lg" />
+              <p className="text-center text-xs text-muted-foreground">
+                We support Phantom, Solflare, and other popular wallets.
+              </p>
             </CardContent>
           </Card>
         
           {/* Footer */}
           <div className="text-center space-y-2 pt-6">
             <p className="text-xs text-muted-foreground">
-              By signing in, you agree to our Terms of Service
+              By connecting your wallet, you agree to our Terms of Service.
             </p>
           </div>
         </div>

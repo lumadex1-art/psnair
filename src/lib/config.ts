@@ -1,3 +1,4 @@
+
 /**
  * Application Configuration
  * 
@@ -43,27 +44,33 @@ export const PLAN_CONFIG = {
   FEATURES: {
     Free: {
       maxDailyClaims: 1,
+      rewardPerClaim: 1,
       features: ['1 Claim per day', 'Basic Support'],
     },
     Starter: {
-      maxDailyClaims: 5,
-      features: ['5 Claims per day', 'Priority Support'],
+      maxDailyClaims: 1,
+      rewardPerClaim: 5,
+      features: ['5 EPSN per day', 'Priority Support'],
     },
     Silver: {
-      maxDailyClaims: 10,
-      features: ['10 Claims per day', 'Faster Cooldowns', 'Priority Support'],
+      maxDailyClaims: 1,
+      rewardPerClaim: 10,
+      features: ['10 EPSN per day', 'Faster Cooldowns', 'Priority Support'],
     },
     Gold: {
-      maxDailyClaims: 20,
-      features: ['20 Claims per day', 'Exclusive Tools Access', 'Master Badge'],
+      maxDailyClaims: 1,
+      rewardPerClaim: 20,
+      features: ['20 EPSN per day', 'Exclusive Tools Access', 'Master Badge'],
     },
     Platinum: {
-      maxDailyClaims: 50,
-      features: ['50 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+      maxDailyClaims: 1,
+      rewardPerClaim: 50,
+      features: ['50 EPSN per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
     },
     Diamond: {
-      maxDailyClaims: 100,
-      features: ['100 Claims per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+      maxDailyClaims: 1,
+      rewardPerClaim: 100,
+      features: ['100 EPSN per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
     },
   },
 } as const;
