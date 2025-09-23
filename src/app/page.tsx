@@ -32,7 +32,7 @@ export default function LoginPage() {
   const [isRegistering, setIsRegistering] = useState(false);
 
   // Set to `true` to show email/password login, `false` to hide for deployment
-  const showEmailLogin = false;
+  const showEmailLogin = true;
 
   useEffect(() => {
     if (isLoggedIn) {
