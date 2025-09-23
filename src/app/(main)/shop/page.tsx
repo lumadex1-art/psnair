@@ -260,9 +260,9 @@ export default function ShopPage() {
            <div className="flex items-start gap-3 rounded-lg border border-blue-200/80 bg-blue-50/80 p-4 dark:border-blue-800/50 dark:bg-blue-900/20 max-w-2xl mx-auto">
               <Hourglass className="h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
               <div className="flex-1">
-                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">Aktivasi Transfer Bank 🚀</h4>
+                  <h4 className="font-semibold text-blue-700 dark:text-blue-300">Aktivasi Paket 🚀</h4>
                   <p className="text-xs text-blue-600 dark:text-blue-400/80">
-                      Untuk pembayaran via transfer bank, paket Anda akan aktif dalam maksimal 24 jam setelah konfirmasi pembayaran kami terima.
+                      Semua pembelian paket memerlukan approval admin. Paket Anda akan aktif dalam maksimal 24 jam setelah pembayaran berhasil.
                   </p>
               </div>
           </div>
@@ -441,7 +441,4 @@ export default function ShopPage() {
     </>
   );
 }
-
-
-
 
