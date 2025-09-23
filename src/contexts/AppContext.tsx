@@ -9,8 +9,8 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth, db, googleProvider } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PLAN_CONFIG } from '@/lib/config';
@@ -47,7 +47,7 @@ type AppState = {
   isLoggedIn: boolean;
   isLoading: boolean;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
-  loginWithGoogle: () => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
@@ -119,9 +119,9 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       isNewUser = true;
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
       const newUser = {
-        displayName: fbUser.displayName || 'Anonymous User',
+        displayName: fbUser.displayName || fbUser.email, // Fallback to email for display name
         email: fbUser.email,
-        providers: { google: true },
+        providers: { email: true },
         balance: 0,
         plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
         claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
@@ -149,8 +149,8 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
           const userData = doc.data();
           const appUser: User = {
             uid: fbUser.uid,
-            name: userData.displayName || fbUser.displayName || 'User',
-            username: (userData.displayName || fbUser.displayName || 'user').replace(/\s+/g, '').toLowerCase(),
+            name: userData.displayName || fbUser.displayName || fbUser.email || 'User',
+            username: (userData.displayName || fbUser.email || 'user').replace(/\s+/g, '').toLowerCase(),
             avatar: fbUser.photoURL || '',
             email: userData.email || fbUser.email || '',
             referredBy: userData.referredBy,
@@ -199,22 +199,34 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       if (unsubscribeSync) unsubscribeSync();
     };
   }, [firebaseUser, syncUserData]);
-
-  const loginWithGoogle = useCallback(async () => {
-    setIsLoading(true);
+  
+  const loginWithEmail = async (email: string, pass: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
     try {
-      await signInWithPopup(auth, googleProvider);
-      // Auth state change will handle the rest (getOrCreateUserDocument, etc.)
+        await signInWithEmailAndPassword(auth, email, pass);
+        // onAuthStateChanged will handle the rest
+        return { success: true };
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message || 'An unknown error occurred during login.',
-      });
-    } finally {
-        setIsLoading(false);
+        if (error.code === 'auth/user-not-found') {
+            // If user doesn't exist, create a new account
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                // onAuthStateChanged will handle the rest
+                return { success: true };
+            } catch (createError: any) {
+                return { 
+                    success: false, 
+                    errorTitle: 'Sign Up Failed',
+                    errorMessage: createError.message || 'Could not create your account.' 
+                };
+            }
+        }
+        return { 
+            success: false, 
+            errorTitle: 'Login Failed',
+            errorMessage: error.message || 'An unknown error occurred.' 
+        };
     }
-  }, [toast]);
+  };
 
   const logout = useCallback(async () => {
     setIsLoading(true);
@@ -279,7 +291,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     isLoggedIn, 
     isLoading, 
     setIsLoggedIn,
-    loginWithGoogle,
+    loginWithEmail,
     logout, 
     claimTokens, 
     purchasePlan 

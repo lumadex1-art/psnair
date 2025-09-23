@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
-  const { isLoggedIn, loginWithGoogle, loginWithEmail, isLoading: isAuthLoading } = useAppContext();
+  const { isLoggedIn, loginWithEmail, isLoading: isAuthLoading } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -27,10 +27,6 @@ export default function LoginPage() {
       router.replace('/claim');
     }
   }, [isLoggedIn, router]);
-
-  const handleGoogleLogin = async () => {
-    await loginWithGoogle();
-  };
 
   const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,29 +105,11 @@ export default function LoginPage() {
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">Join the Airdrop</h2>
                 <p className="text-sm text-muted-foreground">
-                  Sign in with Google or use your email
+                  Sign in or create an account with your email
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-               <Button 
-                onClick={handleGoogleLogin} 
-                disabled={isAuthLoading || isProcessing}
-                className="w-full !h-12 !text-base !font-bold hover:!bg-primary/90 !transition-all !duration-200 !rounded-lg"
-               >
-                 <Image src="/google.svg" alt="Google" width={24} height={24} className="mr-3" />
-                 Sign in with Google
-               </Button>
-              
-               <div className="relative">
-                 <div className="absolute inset-0 flex items-center">
-                   <span className="w-full border-t" />
-                 </div>
-                 <div className="relative flex justify-center text-xs uppercase">
-                   <span className="bg-card px-2 text-muted-foreground">Or with email</span>
-                 </div>
-               </div>
-              
                 <form onSubmit={handleEmailPasswordLogin} className="space-y-3">
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
