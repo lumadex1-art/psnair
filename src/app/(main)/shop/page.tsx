@@ -132,10 +132,8 @@ export default function ShopPage() {
     }
 
     try {
-      // Get user's auth token
       const token = await currentUser.getIdToken();
 
-      // Create server intent via HTTPS Function
       const intentResponse = await fetch('https://solanacreateintentcors-ivtinaswgq-uc.a.run.app', {
         method: 'POST',
         headers: {
@@ -146,37 +144,31 @@ export default function ShopPage() {
       });
 
       const intent = await intentResponse.json();
+      if (!intentResponse.ok) throw new Error(intent.error || 'Failed to create payment intent');
 
-      if (!intentResponse.ok) {
-        throw new Error(intent.error || 'Failed to create payment intent');
-      }
-      
       const lamports: number = intent.amountLamports;
       const transactionId: string = intent.transactionId;
 
-      // 1. Get the latest blockhash
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
 
-      // 2. Create a new transaction
       const tx = new Transaction().add(
         SystemProgram.transfer({
-          fromPubkey: publicKey,
+          fromPubkey: publicKey, // MUST be the connected user's wallet
           toPubkey: MERCHANT_WALLET,
           lamports,
         })
       );
-
-      // 3. Set the fee payer and recent blockhash
+      // Explicitly set the fee payer to the connected user's wallet
       tx.feePayer = publicKey;
       tx.recentBlockhash = blockhash;
-      
-      // 4. Send the transaction directly via the wallet adapter
+
+      // Use sendTransaction from the wallet adapter to handle signing and sending
       const signature = await sendTransaction(tx, connection);
-      
-      // 5. Confirm the transaction on-chain
+
+      // Confirm transaction on-chain
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
-      // 6. Confirm payment with our backend
+      // Confirm payment with our backend
       const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
          method: 'POST',
          headers: {
@@ -187,18 +179,17 @@ export default function ShopPage() {
       });
 
       const confirmData = await confirmResponse.json();
-      
       if (!confirmResponse.ok) {
         throw new Error(confirmData.error || 'Server could not verify payment');
       }
 
-      // 7. Apply plan locally after successful payment
       purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan.` });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative">
@@ -551,3 +542,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    
