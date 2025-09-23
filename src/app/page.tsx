@@ -27,6 +27,9 @@ export default function LoginPage() {
   // Setup reCAPTCHA verifier
   const setupRecaptcha = useCallback(() => {
     if (!auth) return null;
+    const recaptchaContainer = document.getElementById('recaptcha-container');
+    if (!recaptchaContainer) return null; // Wait until the element is in the DOM
+
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
@@ -78,7 +81,7 @@ export default function LoginPage() {
     const verifier = setupRecaptcha();
     if (!verifier) {
         setIsProcessing(false);
-        toast({ variant: 'destructive', title: 'reCAPTCHA Error', description: 'Could not initialize reCAPTCHA.'});
+        toast({ variant: 'destructive', title: 'reCAPTCHA Error', description: 'Could not initialize reCAPTCHA. Please refresh the page.'});
         return;
     }
     const result = await sendOtp(phoneNumber, verifier);
