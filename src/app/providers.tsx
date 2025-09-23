@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { Suspense, useMemo } from 'react';
 import { AppProvider } from '@/contexts/AppContext';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
@@ -27,7 +27,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>
-          <AppProvider>{children}</AppProvider>
+          <Suspense fallback={<div>Loading...</div>}>
+            <AppProvider>{children}</AppProvider>
+          </Suspense>
         </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>

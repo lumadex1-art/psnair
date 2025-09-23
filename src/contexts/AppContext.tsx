@@ -16,6 +16,9 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { PLAN_CONFIG } from '@/lib/config';
 import { generateUniqueReferralCode } from '@/utils/referralCode';
 import { useToast } from '@/hooks/use-toast';
+import { httpsCallable } from 'firebase/functions';
+import { getFunctions } from 'firebase/functions';
+import { useSearchParams } from 'next/navigation';
 
 type User = {
   uid: string;
@@ -23,6 +26,7 @@ type User = {
   username: string;
   avatar: string;
   email: string;
+  referredBy?: string;
 };
 
 type Referral = {
@@ -42,7 +46,7 @@ type AppState = {
   lastClaimTimestamp: number | null;
   isLoggedIn: boolean;
   isLoading: boolean;
-  setIsLoggedIn: (isLoggedIn: boolean) => void; // Add this to handle custom auth flow
+  setIsLoggedIn: (isLoggedIn: boolean) => void;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
@@ -51,7 +55,7 @@ type AppState = {
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [balance, setBalance] = useState<number>(0);
@@ -63,12 +67,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const { disconnect } = useWallet();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  // Capture referral code from URL on initial load
+  useEffect(() => {
+    const refCodeFromUrl = searchParams.get('ref');
+    if (refCodeFromUrl) {
+      try {
+        // Use sessionStorage to persist across reloads within the same tab/session
+        sessionStorage.setItem('referralCode', refCodeFromUrl);
+      } catch (error) {
+        console.error("Could not write to sessionStorage:", error);
+      }
+    }
+  }, [searchParams]);
+
+  const processStoredReferral = useCallback(async () => {
+    try {
+      const storedRefCode = sessionStorage.getItem('referralCode');
+      if (!storedRefCode) return;
+
+      const functions = getFunctions();
+      const processFunction = httpsCallable(functions, 'referralProcess');
+      
+      await processFunction({ referralCode: storedRefCode });
+      
+      // Clear the code after processing to prevent reuse
+      sessionStorage.removeItem('referralCode');
+      
+      toast({
+        title: "Referral Applied!",
+        description: "You've received a bonus for joining via a referral link!",
+      });
+
+    } catch (error: any) {
+      // Don't bother the user with errors here, just log them.
+      // It might be an invalid code or they already have a referrer.
+      console.error("Failed to process stored referral code:", error.message);
+      // Still remove the key to prevent retries
+      sessionStorage.removeItem('referralCode');
+    }
+  }, [toast]);
+
 
   const getOrCreateUserDocument = useCallback(async (fbUser: FirebaseUser) => {
     const userDocRef = doc(db, 'users', fbUser.uid);
     let userDoc = await getDoc(userDocRef);
+    let isNewUser = false;
 
     if (!userDoc.exists()) {
+      isNewUser = true;
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
       const newUser = {
         displayName: fbUser.displayName || 'Anonymous User',
@@ -85,8 +133,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       await setDoc(userDocRef, newUser);
       userDoc = await getDoc(userDocRef); // Re-fetch the doc
     }
+    
+    // If it's a new user, check for a referral code
+    if (isNewUser) {
+      await processStoredReferral();
+    }
+
     return userDoc;
-  }, []);
+  }, [processStoredReferral]);
 
   const syncUserData = useCallback((fbUser: FirebaseUser | null) => {
     if (fbUser) {
@@ -99,6 +153,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             username: (userData.displayName || fbUser.displayName || 'user').replace(/\s+/g, '').toLowerCase(),
             avatar: fbUser.photoURL || '',
             email: userData.email || fbUser.email || '',
+            referredBy: userData.referredBy,
           };
           setUser(appUser);
           setBalance(userData.balance || 0);
@@ -123,36 +178,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setIsLoading(true);
-    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
-      setFirebaseUser(fbUser);
-      const unsubscribeSync = syncUserData(fbUser);
-      setIsLoggedIn(!!fbUser);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
+      if (fbUser) {
+        await getOrCreateUserDocument(fbUser);
+        setFirebaseUser(fbUser);
+        setIsLoggedIn(true);
+      } else {
+        setFirebaseUser(null);
+        setIsLoggedIn(false);
+      }
       setIsLoading(false);
-      
-      return () => {
-        if (unsubscribeSync) unsubscribeSync();
-      };
     });
-
+  
     return () => unsubscribeAuth();
-  }, [syncUserData]);
+  }, [getOrCreateUserDocument]);
+
+  useEffect(() => {
+    const unsubscribeSync = syncUserData(firebaseUser);
+    return () => {
+      if (unsubscribeSync) unsubscribeSync();
+    };
+  }, [firebaseUser, syncUserData]);
 
   const loginWithGoogle = useCallback(async () => {
     setIsLoading(true);
     try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const fbUser = result.user;
-      await getOrCreateUserDocument(fbUser);
-      // Auth state change will handle the rest
+      await signInWithPopup(auth, googleProvider);
+      // Auth state change will handle the rest (getOrCreateUserDocument, etc.)
     } catch (error: any) {
       toast({
         variant: 'destructive',
         title: 'Login Failed',
         description: error.message || 'An unknown error occurred during login.',
       });
-      setIsLoading(false);
+    } finally {
+        setIsLoading(false);
     }
-  }, [getOrCreateUserDocument, toast]);
+  }, [toast]);
 
   const logout = useCallback(async () => {
     setIsLoading(true);
@@ -176,8 +238,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to claim tokens.' };
     }
     try {
-      const { httpsCallable } = await import('firebase/functions');
-      const { getFunctions } = await import('firebase/functions');
       const functions = getFunctions();
       const claimFunction = httpsCallable(functions, 'claim');
       
@@ -227,6 +287,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
+
+export function AppProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <AppProviderInternal>{children}</AppProviderInternal>
+    </React.Suspense>
+  )
+}
+
 
 export function useAppContext() {
   const context = useContext(AppContext);

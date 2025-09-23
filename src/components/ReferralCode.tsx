@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -15,34 +16,37 @@ export function ReferralCode() {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
+  // Updated referral link format
+  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
+
   const copyToClipboard = async () => {
-    if (!referralCode) return;
+    if (!referralLink) return;
     
     try {
-      await navigator.clipboard.writeText(referralCode);
+      await navigator.clipboard.writeText(referralLink);
       setCopied(true);
       toast({
         title: "Copied!",
-        description: "Referral code copied to clipboard",
+        description: "Referral link copied to clipboard",
       });
       
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to copy referral code",
+        description: "Failed to copy referral link",
         variant: "destructive",
       });
     }
   };
 
   const shareReferralCode = async () => {
-    if (!referralCode) return;
+    if (!referralLink) return;
     
     const shareData = {
       title: 'Join EpsilonDrop with my referral code!',
-      text: `Use my referral code ${referralCode} to get bonus EPSN tokens when you join EpsilonDrop!`,
-      url: `${window.location.origin}?ref=${referralCode}`,
+      text: `Use my referral code to get bonus EPSN tokens when you join EpsilonDrop!`,
+      url: referralLink,
     };
 
     try {
@@ -54,11 +58,12 @@ export function ReferralCode() {
           `${shareData.text}\n\n${shareData.url}`
         );
         toast({
-          title: "Share text copied!",
-          description: "Share text copied to clipboard",
+          title: "Share link copied!",
+          description: "Share link copied to clipboard",
         });
       }
     } catch (error) {
+      // Handle share error if necessary
     }
   };
 
@@ -84,22 +89,22 @@ export function ReferralCode() {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Gift className="h-5 w-5 text-primary" />
-          Your Referral Code
+          Your Referral Link
         </CardTitle>
         <p className="text-sm text-muted-foreground">
-          Share your code and earn 1 EPSN for each friend who joins!
+          Share your link and earn rewards when friends join!
         </p>
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {/* Referral Code Display */}
+        {/* Referral Link Display */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <Input
-                value={referralCode}
+                value={referralLink}
                 readOnly
-                className="text-center text-xl font-mono font-bold tracking-wider bg-background/50 border-primary/30 focus:border-primary"
+                className="text-sm font-mono bg-background/50 border-primary/30 focus:border-primary"
               />
             </div>
             <Button
@@ -134,7 +139,7 @@ export function ReferralCode() {
             className="flex items-center gap-2 hover:bg-primary/10 hover:border-primary/30"
           >
             <Share2 className="h-4 w-4" />
-            Share
+            Share Link
           </Button>
           
           <Button
@@ -161,18 +166,13 @@ export function ReferralCode() {
           <div className="space-y-1 text-sm text-muted-foreground">
             <div className="flex justify-between">
               <span>You earn:</span>
-              <span className="font-semibold text-primary">1 EPSN</span>
+              <span className="font-semibold text-primary">20 EPSN</span>
             </div>
             <div className="flex justify-between">
               <span>Your friend gets:</span>
-              <span className="font-semibold text-primary">1 EPSN</span>
+              <span className="font-semibold text-primary">10 EPSN</span>
             </div>
           </div>
-        </div>
-
-        {/* Share URL Preview */}
-        <div className="text-xs text-muted-foreground bg-background/30 rounded p-2 font-mono break-all">
-          {`${window.location.origin}?ref=${referralCode}`}
         </div>
       </CardContent>
     </Card>
