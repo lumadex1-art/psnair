@@ -2,6 +2,8 @@
 import { onRequest } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { PlanUtils } from "./config/plans";
+import { generateUniqueReferralCode } from "../../utils/referralCode";
+import { Timestamp } from "firebase-admin/firestore";
 
 // CORS headers with development support (manual, consistent with cors-solana.ts)
 const setCorsHeaders = (res: any, req: any) => {
@@ -43,6 +45,93 @@ const setCorsHeaders = (res: any, req: any) => {
   // Cache preflight for a day to reduce OPTIONS traffic
   res.set('Access-Control-Max-Age', '86400');
 };
+
+
+// --- SEND LOGIN LINK (Called by the client-side) ---
+export const sendLoginLink = onRequest(async (req, res) => {
+    setCorsHeaders(res as any, req as any);
+    if (req.method === 'OPTIONS') {
+        res.status(204).send('');
+        return;
+    }
+    if (req.method !== 'POST') {
+        res.status(405).send('Method Not Allowed');
+        return;
+    }
+
+    try {
+        const { email } = req.body;
+        if (!email) {
+            res.status(400).json({ success: false, error: "Email is required" });
+            return;
+        }
+        
+        const db = admin.firestore();
+        const auth = admin.auth();
+        let userRecord;
+        let isNewUser = false;
+        
+        try {
+            userRecord = await auth.getUserByEmail(email);
+        } catch (error: any) {
+            if (error.code === 'auth/user-not-found') {
+                isNewUser = true;
+                userRecord = await auth.createUser({ email });
+            } else {
+                throw error;
+            }
+        }
+        
+        // If it's a new user, create their document in Firestore
+        if (isNewUser) {
+            const userDocRef = db.collection('users').doc(userRecord.uid);
+            const referralCode = await generateUniqueReferralCode(userRecord.uid);
+            await userDocRef.set({
+                displayName: email.split('@')[0],
+                email: email,
+                providers: { email: true },
+                balance: 0,
+                plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
+                claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
+                referralCode: referralCode,
+                createdAt: Timestamp.now(),
+                updatedAt: Timestamp.now(),
+            });
+        }
+        
+        // Create the magic link token
+        const tokenRef = db.collection('authTokens').doc();
+        const token = tokenRef.id;
+        const expiresAt = new Date();
+        expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minute expiry
+
+        await tokenRef.set({
+            uid: userRecord.uid,
+            createdAt: Timestamp.now(),
+            expiresAt: Timestamp.fromDate(expiresAt),
+        });
+
+        const link = `https://psnchainaidrop.digital/auth/action?mode=tokenLogin&token=${token}`;
+
+        // Send the email (using a simple Firestore-based mail service like Trigger Email)
+        await db.collection('mail').add({
+            to: email,
+            template: {
+                name: 'magic-link', // Assumes a template named 'magic-link' is configured
+                data: {
+                    login_link: link,
+                },
+            },
+        });
+
+        res.status(200).json({ success: true, message: "Login link sent successfully." });
+
+    } catch (error) {
+        console.error("Error sending login link:", error);
+        res.status(500).json({ success: false, error: "Internal server error while sending link." });
+    }
+});
+
 
 // --- TOKEN VERIFICATION (Called by the client-side) ---
 export const verifyAuthToken = onRequest(async (req, res) => {
