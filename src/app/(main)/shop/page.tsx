@@ -136,6 +136,7 @@ export default function ShopPage() {
     if (!user) return;
     setIsCreatingLink(true);
     setPaymentLink('');
+    setPurchasingPlan(planId);
 
     try {
         const { getAuth } = await import('firebase/auth');
@@ -158,11 +159,26 @@ export default function ShopPage() {
           },
           body: JSON.stringify({ planId }),
         });
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          console.error('createPaymentLink failed:', errorText);
+          let errorMessage = 'Failed to create payment link.';
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error || errorMessage;
+          } catch (e) {
+            // The error response was not JSON, use the raw text if it's not too long
+            if (errorText.length < 200) {
+              errorMessage = errorText;
+            }
+          }
+          throw new Error(errorMessage);
+        }
 
-        const data = await res.json().catch(() => ({}));
-
-        if (!res.ok || !data?.success) {
-          console.error('createPaymentLink failed:', data);
+        const data = await res.json();
+        
+        if (!data?.success) {
           throw new Error(data?.error || 'Failed to create payment link. Please try again later.');
         }
         
@@ -173,6 +189,7 @@ export default function ShopPage() {
         toast({ variant: 'destructive', title: 'Error Creating Link', description: error.message });
     } finally {
         setIsCreatingLink(false);
+        setPurchasingPlan(null);
     }
   };
 
@@ -236,7 +253,7 @@ export default function ShopPage() {
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
                       <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('w-full sm:w-auto flex-1 h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
-                          {isProcessing ? (
+                          {isProcessing && purchasingPlan === plan.name && !isCreatingLink ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Processing...
@@ -251,7 +268,7 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => { setPurchasingPlan(plan.name); handleCreatePaymentLink(plan.name); }} disabled={isCurrentPlan || isCreatingLink || isProcessing || !!purchasingPlan} className="w-full sm:w-auto h-12 font-semibold text-base px-4">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="w-full sm:w-auto h-12 font-semibold text-base px-4">
                           {isLinkCreationInProgress ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -290,5 +307,3 @@ export default function ShopPage() {
     </>
   );
 }
-
-    
