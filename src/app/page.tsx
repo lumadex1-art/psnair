@@ -1,4 +1,3 @@
-
 'use client';
 
 import { ArrowRight, LogIn, Mail, Loader2, KeyRound } from 'lucide-react';
