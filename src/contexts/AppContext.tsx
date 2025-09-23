@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { auth, db } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PLAN_CONFIG } from '@/lib/config';
@@ -25,8 +25,8 @@ type User = {
   name: string;
   username: string;
   avatar: string;
-  email: string;
-  referredBy?: string;
+  email: string; // Keep for type consistency, might be empty
+  phoneNumber: string;
 };
 
 type Referral = {
@@ -47,13 +47,22 @@ type AppState = {
   isLoggedIn: boolean;
   isLoading: boolean;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
-  loginWithEmail: (email: string, pass: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
+  sendOtp: (phoneNumber: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
+  verifyOtp: (otpCode: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
 };
 
 const AppContext = createContext<AppState | undefined>(undefined);
+
+// Extend window type for reCAPTCHA
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier;
+    confirmationResult?: ConfirmationResult;
+  }
+}
 
 function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -68,6 +77,27 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const { disconnect } = useWallet();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  // Setup reCAPTCHA verifier
+  const setupRecaptcha = useCallback(() => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+    return window.recaptchaVerifier;
+  }, []);
+
+  useEffect(() => {
+    // This effect runs once on mount to setup the verifier
+    if (typeof window !== 'undefined') {
+        setupRecaptcha();
+    }
+  }, [setupRecaptcha]);
+
 
   // Capture referral code from URL on initial load
   useEffect(() => {
@@ -119,9 +149,10 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       isNewUser = true;
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
       const newUser = {
-        displayName: fbUser.displayName || fbUser.email, // Fallback to email for display name
-        email: fbUser.email,
-        providers: { email: true },
+        displayName: fbUser.phoneNumber, // Use phone number as initial name
+        email: fbUser.email || '', // Will be null for phone auth
+        phoneNumber: fbUser.phoneNumber,
+        providers: { phone: true },
         balance: 0,
         plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
         claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
@@ -149,10 +180,11 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
           const userData = doc.data();
           const appUser: User = {
             uid: fbUser.uid,
-            name: userData.displayName || fbUser.displayName || fbUser.email || 'User',
-            username: (userData.displayName || fbUser.email || 'user').replace(/\s+/g, '').toLowerCase(),
+            name: userData.displayName || fbUser.phoneNumber || 'User',
+            username: (userData.displayName || fbUser.phoneNumber || 'user').replace(/\s+/g, '').toLowerCase(),
             avatar: fbUser.photoURL || '',
             email: userData.email || fbUser.email || '',
+            phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
             referredBy: userData.referredBy,
           };
           setUser(appUser);
@@ -199,35 +231,47 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       if (unsubscribeSync) unsubscribeSync();
     };
   }, [firebaseUser, syncUserData]);
-  
-  const loginWithEmail = async (email: string, pass: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
+
+  const sendOtp = async (phoneNumber: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
     try {
-        await signInWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the rest
+        const appVerifier = setupRecaptcha();
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        window.confirmationResult = confirmationResult;
         return { success: true };
     } catch (error: any) {
-        if (error.code === 'auth/user-not-found') {
-            // If user doesn't exist, create a new account
-            try {
-                await createUserWithEmailAndPassword(auth, email, pass);
-                // onAuthStateChanged will handle the rest
-                return { success: true };
-            } catch (createError: any) {
-                return { 
-                    success: false, 
-                    errorTitle: 'Sign Up Failed',
-                    errorMessage: createError.message || 'Could not create your account.' 
-                };
-            }
+        console.error("Error sending OTP:", error);
+        // Reset reCAPTCHA verifier on error
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.render().then((widgetId) => {
+                // @ts-ignore
+                grecaptcha.reset(widgetId);
+            });
         }
-        return { 
-            success: false, 
-            errorTitle: 'Login Failed',
-            errorMessage: error.message || 'An unknown error occurred.' 
-        };
+        return {
+            success: false,
+            errorTitle: 'Failed to Send Code',
+            errorMessage: error.message || 'Could not send verification code. Please try again.'
+        }
     }
-  };
+  }
 
+  const verifyOtp = async (otpCode: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
+    try {
+        if (window.confirmationResult) {
+            await window.confirmationResult.confirm(otpCode);
+            // onAuthStateChanged will handle login state update
+            return { success: true };
+        }
+        throw new Error("Confirmation result not found. Please request a new code.");
+    } catch (error: any) {
+        return {
+            success: false,
+            errorTitle: 'Invalid Code',
+            errorMessage: error.message || 'The code you entered is incorrect. Please try again.'
+        }
+    }
+  }
+  
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -291,7 +335,8 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     isLoggedIn, 
     isLoading, 
     setIsLoggedIn,
-    loginWithEmail,
+    sendOtp,
+    verifyOtp,
     logout, 
     claimTokens, 
     purchasePlan 

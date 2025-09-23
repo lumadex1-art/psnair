@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAppContext } from '@/contexts/AppContext';
@@ -7,7 +6,7 @@ import { BalanceStatus } from '@/components/BalanceStatus';
 import { ReferralCode } from '@/components/ReferralCode';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, Coins, Star, Repeat, Copy, Users, Map } from 'lucide-react';
+import { LogOut, Coins, Star, Repeat, Copy, Users, Map, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -81,8 +80,8 @@ export default function ProfilePage() {
               {user.name}
             </h1>
             <p className="text-muted-foreground text-lg flex items-center justify-center gap-2">
-              <span>{`@${user.username}`}</span>
-              <span className="text-primary">✨</span>
+              <Phone className="h-4 w-4" />
+              <span>{user.phoneNumber}</span>
             </p>
             
             {/* Stats Row */}

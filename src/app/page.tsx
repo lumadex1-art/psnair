@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRight, LogIn, Mail, Loader2, KeyRound } from 'lucide-react';
+import { Phone, MessageSquare, Loader2, KeyRound, Smartphone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -12,13 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function LoginPage() {
-  const { isLoggedIn, loginWithEmail, isLoading: isAuthLoading } = useAppContext();
+  const { isLoggedIn, sendOtp, verifyOtp, isLoading: isAuthLoading } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [otp, setOtp] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     // If user is logged in, redirect to the claim page
@@ -27,27 +28,61 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, router]);
 
-  const handleEmailPasswordLogin = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!phoneNumber) {
       toast({
         variant: 'destructive',
         title: 'Input Required',
-        description: 'Please enter both email and password.',
+        description: 'Please enter your phone number.',
       });
       return;
     }
-    if (password.length < 6) {
+    
+    // Simple validation for phone number format (e.g., starts with +)
+    // You might want a more robust library for this in production
+    if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+        toast({
+            variant: 'destructive',
+            title: 'Invalid Phone Number',
+            description: 'Please use international format (e.g., +6281234567890)',
+        });
+        return;
+    }
+
+
+    setIsProcessing(true);
+    const result = await sendOtp(phoneNumber);
+    setIsProcessing(false);
+
+    if (result.success) {
+      setOtpSent(true);
       toast({
-        variant: 'destructive',
-        title: 'Password Too Short',
-        description: 'Password must be at least 6 characters.',
+        title: 'Code Sent!',
+        description: 'An OTP has been sent to your phone number.',
       });
-      return;
+    } else {
+        toast({
+            variant: 'destructive',
+            title: result.errorTitle || 'Failed to Send Code',
+            description: result.errorMessage || 'An unknown error occurred.',
+        });
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp) {
+        toast({
+            variant: 'destructive',
+            title: 'Input Required',
+            description: 'Please enter the OTP code.',
+        });
+        return;
     }
 
     setIsProcessing(true);
-    const result = await loginWithEmail(email, password);
+    const result = await verifyOtp(otp);
     setIsProcessing(false);
 
     if (!result.success) {
@@ -70,6 +105,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
+      {/* reCAPTCHA container */}
+      <div id="recaptcha-container"></div>
+      
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent)] pointer-events-none" />
       
@@ -104,42 +142,58 @@ export default function LoginPage() {
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">Join the Airdrop</h2>
                 <p className="text-sm text-muted-foreground">
-                  Sign in or create an account with your email
+                  {otpSent ? 'Enter the code we sent you' : 'Sign in with your phone number'}
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-                <form onSubmit={handleEmailPasswordLogin} className="space-y-3">
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="email" 
-                      placeholder="Enter your email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="pl-10 h-12"
-                    />
-                  </div>
-                   <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input 
-                      type="password" 
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="pl-10 h-12"
-                    />
-                  </div>
-                  <Button type="submit" disabled={isProcessing || !email || !password} className="w-full h-12 text-base font-bold">
-                    {isProcessing ? (
-                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
-                    ) : (
-                      'Sign In / Sign Up'
-                    )}
-                  </Button>
-                </form>
+                {!otpSent ? (
+                    <form onSubmit={handleSendOtp} className="space-y-3">
+                        <div className="relative">
+                            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                            type="tel" 
+                            placeholder="e.g., +6281234567890"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            required
+                            className="pl-10 h-12"
+                            />
+                        </div>
+                        <Button type="submit" disabled={isProcessing || !phoneNumber} className="w-full h-12 text-base font-bold">
+                            {isProcessing ? (
+                            <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending Code...</>
+                            ) : (
+                            'Send Code'
+                            )}
+                        </Button>
+                    </form>
+                ) : (
+                     <form onSubmit={handleVerifyOtp} className="space-y-3">
+                        <div className="relative">
+                            <MessageSquare className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input 
+                            type="text" 
+                            placeholder="6-digit code"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            required
+                            className="pl-10 h-12 tracking-[0.3em] text-center"
+                            maxLength={6}
+                            />
+                        </div>
+                        <Button type="submit" disabled={isProcessing || !otp} className="w-full h-12 text-base font-bold">
+                            {isProcessing ? (
+                                <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Verifying...</>
+                            ) : (
+                                <> <Smartphone className="mr-2 h-5 w-5" /> Verify & Login</>
+                            )}
+                        </Button>
+                        <Button variant="link" size="sm" onClick={() => setOtpSent(false)} className="w-full">
+                            Use a different phone number?
+                        </Button>
+                    </form>
+                )}
             </CardContent>
           </Card>
         
