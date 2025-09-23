@@ -12,15 +12,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
-const GoogleIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M22 12c0-5.52-4.48-10-10-10S2 6.48 2 12s4.48 10 10 10 10-4.48 10-10z"/>
-        <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10z"/>
-        <path d="M12 12v-2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z"/>
-    </svg>
-);
-
-
 export default function LoginPage() {
   const { login, loginWithEmail, registerWithEmail, isLoggedIn } = useAppContext();
   const router = useRouter();
@@ -31,18 +22,11 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
 
-  // Set to `true` to show email/password login, `false` to hide for deployment
-  const showEmailLogin = true;
-
   useEffect(() => {
     if (isLoggedIn) {
       router.replace('/claim');
     }
   }, [isLoggedIn, router]);
-
-  const handleGoogleLogin = async () => {
-    await login();
-  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,82 +92,53 @@ export default function LoginPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {showEmailLogin && (
-                <form onSubmit={handleEmailAuth} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="name@example.com" 
-                      required 
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting ? 'Processing...' : (isRegistering ? 'Sign Up' : 'Sign In')}
-                  </Button>
-                </form>
-              )}
+              <form onSubmit={handleEmailAuth} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="name@example.com" 
+                    required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    required
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Processing...' : (isRegistering ? 'Sign Up' : 'Sign In')}
+                </Button>
+              </form>
               
-              {showEmailLogin && (
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      Or continue with
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Google Login */}
-              <Button
-                onClick={handleGoogleLogin}
-                variant="outline"
-                className="w-full h-12 border-border/50 hover:bg-accent/50 transition-all duration-200"
-                size="lg"
-                disabled={isSubmitting}
-              >
-                <GoogleIcon/>
-                <span className="ml-2 font-medium">Continue with Google</span>
-              </Button>
-
-              {showEmailLogin && (
-                <div className="text-center pt-4 border-t border-border/30">
-                  {isRegistering ? (
-                    <p className="text-sm text-muted-foreground">
-                      Already have an account?{' '}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
-                        Sign In
-                      </Button>
-                    </p>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Don't have an account?{' '}
-                      <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
-                        Sign Up
-                      </Button>
-                    </p>
-                  )}
-                </div>
-              )}
+              <div className="text-center pt-4 border-t border-border/30">
+                {isRegistering ? (
+                  <p className="text-sm text-muted-foreground">
+                    Already have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(false)}>
+                      Sign In
+                    </Button>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    Don't have an account?{' '}
+                    <Button variant="link" className="p-0 h-auto" onClick={() => setIsRegistering(true)}>
+                      Sign Up
+                    </Button>
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         
