@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  const { login, loginWithEmail, registerWithEmail, isLoggedIn } = useAppContext();
+  const { loginWithEmail, registerWithEmail, isLoggedIn } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -35,6 +35,16 @@ export default function LoginPage() {
 
     if (isRegistering) {
       result = await registerWithEmail(email, password);
+      if (result.success && result.message) {
+        toast({
+          title: 'Registration Successful',
+          description: result.message,
+        });
+        // Clear form and switch to login view
+        setEmail('');
+        setPassword('');
+        setIsRegistering(false);
+      }
     } else {
       result = await loginWithEmail(email, password);
     }
@@ -42,12 +52,12 @@ export default function LoginPage() {
     if (!result.success) {
       toast({
         variant: 'destructive',
-        title: 'Authentication Failed',
+        title: isRegistering ? 'Registration Failed' : 'Authentication Failed',
         description: result.error,
       });
     }
     
-    // onAuthStateChanged will redirect on success
+    // onAuthStateChanged will redirect on successful verified login
     setIsSubmitting(false);
   };
 

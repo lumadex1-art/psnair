@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { auth, googleProvider, db } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { clearAllDummyData, isDummyUser } from '@/utils/clearDummyData';
 import { migrateUserBalanceToFirestore } from '@/utils/migrateBalance';
@@ -67,7 +67,7 @@ type AppState = {
   isLoading: boolean;
   login: () => Promise<void>;
   loginWithEmail: (email: string, pass: string) => Promise<{ success: boolean, error?: string }>;
-  registerWithEmail: (email: string, pass: string) => Promise<{ success: boolean, error?: string }>;
+  registerWithEmail: (email: string, pass: string) => Promise<{ success: boolean, error?: string, message?: string }>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
@@ -197,8 +197,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       console.log('[DEBUG] onAuthStateChanged triggered. User:', fbUser?.uid || 'null');
-      setFirebaseUser(fbUser);
-      if (fbUser) {
+      
+      if (fbUser && fbUser.emailVerified) {
+        setFirebaseUser(fbUser);
         setIsLoggedIn(true);
         const storedState = localStorage.getItem(`epsilonDropState_${fbUser.uid}`);
         
@@ -259,6 +260,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } else {
+        // User is not logged in or not verified
+        setFirebaseUser(null);
         setUser(null);
         setIsLoggedIn(false);
         setState(initialState);
@@ -267,9 +270,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [loadUserDataFromFirestore, saveStateToLocalStorage]);
 
   const login = useCallback(async () => {
+    // This function is now unused but kept for potential future use
     setIsLoading(true);
     try {
       await signInWithPopup(auth, googleProvider);
@@ -282,7 +286,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = useCallback(async (email: string, pass: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, pass);
+      const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+      if (!userCredential.user.emailVerified) {
+        await signOut(auth);
+        return { success: false, error: 'Please verify your email before logging in. Check your inbox.' };
+      }
+      // onAuthStateChanged will handle successful login
       return { success: true };
     } catch (error: any) {
       return { success: false, error: error.message };
@@ -291,9 +300,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const registerWithEmail = useCallback(async (email: string, pass: string) => {
     try {
-      await createUserWithEmailAndPassword(auth, email, pass);
-      // onAuthStateChanged will handle user creation in Firestore
-      return { success: true };
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      await sendEmailVerification(userCredential.user);
+      await signOut(auth); // Log out user immediately so they have to verify first
+      return { success: true, message: 'Registration successful! Please check your email to verify your account.' };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -400,5 +410,3 @@ export function useAppContext() {
   }
   return context;
 }
-
-    
