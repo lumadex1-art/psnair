@@ -70,13 +70,14 @@ export const createLoginLink = async (req: Request, res: Response) => {
     }
 
     try {
-        const { nanoid } = await import('nanoid');
-        const token = nanoid(32);
+        // Use Firestore's auto-ID for a secure, unique token
+        const tokenRef = db.collection('authTokens').doc();
+        const token = tokenRef.id;
 
         const expiresAt = new Date();
         expiresAt.setMinutes(expiresAt.getMinutes() + 10); // 10 minute validity
 
-        await db.collection('authTokens').doc(token).set({
+        await tokenRef.set({
             uid: uid,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
@@ -115,13 +116,13 @@ export const createPaymentLink = async (req: Request, res: Response) => {
             return;
         }
 
-        const { nanoid } = await import('nanoid');
-        const paymentToken = nanoid(24);
+        // Use Firestore's auto-ID for a secure, unique token
+        const paymentIntentRef = db.collection('paymentIntents').doc();
+        const paymentToken = paymentIntentRef.id;
 
         const expiresAt = new Date();
         expiresAt.setHours(expiresAt.getHours() + 1); // Link valid for 1 hour
 
-        const paymentIntentRef = db.collection('paymentIntents').doc(paymentToken);
         await paymentIntentRef.set({
             uid,
             planId,
