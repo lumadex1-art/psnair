@@ -27,6 +27,7 @@ type User = {
   avatar: string;
   email: string; // Keep for type consistency, might be empty
   phoneNumber: string;
+  referredBy?: string;
 };
 
 type Referral = {
@@ -47,7 +48,7 @@ type AppState = {
   isLoggedIn: boolean;
   isLoading: boolean;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
-  sendOtp: (phoneNumber: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
+  sendOtp: (phoneNumber: string, verifier: RecaptchaVerifier) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
   verifyOtp: (otpCode: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
@@ -77,27 +78,6 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const { disconnect } = useWallet();
   const { toast } = useToast();
   const searchParams = useSearchParams();
-
-  // Setup reCAPTCHA verifier
-  const setupRecaptcha = useCallback(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        }
-      });
-    }
-    return window.recaptchaVerifier;
-  }, []);
-
-  useEffect(() => {
-    // This effect runs once on mount to setup the verifier
-    if (typeof window !== 'undefined') {
-        setupRecaptcha();
-    }
-  }, [setupRecaptcha]);
-
 
   // Capture referral code from URL on initial load
   useEffect(() => {
@@ -232,19 +212,20 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     };
   }, [firebaseUser, syncUserData]);
 
-  const sendOtp = async (phoneNumber: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
+  const sendOtp = async (phoneNumber: string, verifier: RecaptchaVerifier): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
     try {
-        const appVerifier = setupRecaptcha();
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
         window.confirmationResult = confirmationResult;
         return { success: true };
     } catch (error: any) {
         console.error("Error sending OTP:", error);
-        // Reset reCAPTCHA verifier on error
+         // Reset reCAPTCHA verifier on certain errors
         if (window.recaptchaVerifier) {
             window.recaptchaVerifier.render().then((widgetId) => {
                 // @ts-ignore
-                grecaptcha.reset(widgetId);
+                if(typeof grecaptcha !== 'undefined') {
+                    grecaptcha.reset(widgetId);
+                }
             });
         }
         return {

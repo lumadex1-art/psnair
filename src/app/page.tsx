@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Phone, MessageSquare, Loader2, KeyRound, Smartphone } from 'lucide-react';
@@ -5,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { RecaptchaVerifier } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function LoginPage() {
   const { isLoggedIn, sendOtp, verifyOtp, isLoading: isAuthLoading } = useAppContext();
@@ -20,6 +23,26 @@ export default function LoginPage() {
   const [otp, setOtp] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+
+  // Setup reCAPTCHA verifier
+  const setupRecaptcha = useCallback(() => {
+    if (!auth) return null;
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        }
+      });
+    }
+    return window.recaptchaVerifier;
+  }, []);
+
+  useEffect(() => {
+    // This effect runs once on mount to setup the verifier
+    setupRecaptcha();
+  }, [setupRecaptcha]);
+
 
   useEffect(() => {
     // If user is logged in, redirect to the claim page
@@ -52,7 +75,13 @@ export default function LoginPage() {
 
 
     setIsProcessing(true);
-    const result = await sendOtp(phoneNumber);
+    const verifier = setupRecaptcha();
+    if (!verifier) {
+        setIsProcessing(false);
+        toast({ variant: 'destructive', title: 'reCAPTCHA Error', description: 'Could not initialize reCAPTCHA.'});
+        return;
+    }
+    const result = await sendOtp(phoneNumber, verifier);
     setIsProcessing(false);
 
     if (result.success) {
