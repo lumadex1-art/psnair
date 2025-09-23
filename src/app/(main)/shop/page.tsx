@@ -72,7 +72,7 @@ interface PlanPricing {
 export default function ShopPage() {
   const { userTier, purchasePlan } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey, signTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
@@ -121,7 +121,7 @@ export default function ShopPage() {
   }, []);
 
   const handlePurchase = async (plan: Tier) => {
-    if (!connected || !publicKey) {
+    if (!connected || !publicKey || !signTransaction) {
       toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
       return;
     }
@@ -156,17 +156,24 @@ export default function ShopPage() {
 
       // Build transfer transaction
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-      const tx = new Transaction({ recentBlockhash: blockhash, feePayer: publicKey });
-      tx.add(
+      const tx = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: publicKey,
+      }).add(
         SystemProgram.transfer({
           fromPubkey: publicKey,
           toPubkey: MERCHANT_WALLET,
           lamports,
         })
       );
+      
+      // Explicitly sign the transaction with the user's wallet
+      const signedTransaction = await signTransaction(tx);
 
-      // Send and confirm on-chain
-      const signature = await sendTransaction(tx, connection, { skipPreflight: false });
+      // Send the raw, signed transaction to the network
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+      
+      // Confirm the transaction on-chain
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
       // Confirm payment via HTTPS Function
@@ -544,3 +551,5 @@ export default function ShopPage() {
     </div>
   );
 }
+
+    
