@@ -33,11 +33,11 @@ export const PLAN_CONFIG = {
   // Plan prices in SOL (public information)
   PRICES: {
     Free: 0,
-    Starter : 0.033,    // ~$5 USD
-    Silver: 0.053,        // ~$8 USD  
-    Gold: 0.1,       // ~$15 USD
-    Platinum: 0.167, 
-    Diamond:0.25     // ~$25 USD
+    Starter : 0.0183486,
+    Silver: 0.0367,
+    Gold: 0.0734,
+    Platinum: 0.2064, 
+    Diamond: 0.4128,
   },
   
   // Plan features (public)
@@ -45,7 +45,7 @@ export const PLAN_CONFIG = {
     Free: {
       maxDailyClaims: 1,
       rewardPerClaim: 1,
-      features: ['1 Claim per day', 'Basic Support'],
+      features: ['1 EPSN per day', 'Basic Support'],
     },
     Starter: {
       maxDailyClaims: 1,

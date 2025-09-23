@@ -1,3 +1,4 @@
+
 /**
  * Plan Configuration - Backend
  * Single source of truth untuk plan pricing dan features
@@ -35,8 +36,8 @@ export const BACKEND_PLAN_CONFIG: Record<string, PlanData> = {
   Starter: {
     id: "Starter",
     name: "Starter Plan", 
-    priceInSol: 0.033,
-    priceInLamports: 33_000_000,
+    priceInSol: 0.0183486,
+    priceInLamports: 18348600,
     maxDailyClaims: 1, // CHANGED: Only 1 claim per day
     rewardPerClaim: 5, // NEW: 5 EPSN per claim
     features: ['5 EPSN per day', 'Priority Support'],
@@ -46,8 +47,8 @@ export const BACKEND_PLAN_CONFIG: Record<string, PlanData> = {
   Silver: {
     id: "Silver",
     name: "Silver Plan",
-    priceInSol: 0.053,
-    priceInLamports: 53_000_000,
+    priceInSol: 0.0367,
+    priceInLamports: 36700000,
     maxDailyClaims: 1, // CHANGED: Only 1 claim per day
     rewardPerClaim: 10, // NEW: 10 EPSN per claim
     features: ['10 EPSN per day', 'Faster Cooldowns', 'Priority Support'],
@@ -57,8 +58,8 @@ export const BACKEND_PLAN_CONFIG: Record<string, PlanData> = {
   Gold: {
     id: "Gold", 
     name: "Gold Plan",
-    priceInSol: 0.1,
-    priceInLamports: 100_000_000,
+    priceInSol: 0.0734,
+    priceInLamports: 73400000,
     maxDailyClaims: 1, // CHANGED: Only 1 claim per day
     rewardPerClaim: 20, // NEW: 20 EPSN per claim
     features: ['20 EPSN per day', 'Exclusive Tools Access', 'Gold Badge'],
@@ -68,8 +69,8 @@ export const BACKEND_PLAN_CONFIG: Record<string, PlanData> = {
   Platinum: {
     id: "Platinum",
     name: "Platinum Plan", 
-    priceInSol: 0.167,
-    priceInLamports: 167_000_000,
+    priceInSol: 0.2064,
+    priceInLamports: 206400000,
     maxDailyClaims: 1, // CHANGED: Only 1 claim per day
     rewardPerClaim: 50, // NEW: 50 EPSN per claim
     features: ['50 EPSN per day', 'All Exclusive Tools', 'Platinum Community Access', 'Highest Priority Support'],
@@ -79,8 +80,8 @@ export const BACKEND_PLAN_CONFIG: Record<string, PlanData> = {
   Diamond: {
     id: "Diamond",
     name: "Diamond Plan",
-    priceInSol: 0.25,
-    priceInLamports: 250_000_000,
+    priceInSol: 0.4128,
+    priceInLamports: 412800000,
     maxDailyClaims: 1, // CHANGED: Only 1 claim per day
     rewardPerClaim: 100, // NEW: 100 EPSN per claim
     features: ['100 EPSN per day', 'All Exclusive Tools', 'Diamond Community Access', 'VIP Support', 'Exclusive NFT Access'],

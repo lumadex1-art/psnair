@@ -30,13 +30,16 @@ type Tier = keyof typeof PLAN_CONFIG.PRICES;
 
 const MERCHANT_WALLET = new PublicKey('Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8vBby');
 
-const plans = [
-    { name: 'Starter' as Tier, usdPrice: 4.99, description: 'For active claimers.', features: ['5 EPSN per day', 'Lifetime access', 'Priority Support'], isPopular: false },
-    { name: 'Silver' as Tier, usdPrice: 7.99, description: 'For dedicated users.', features: ['10 EPSN per day', 'Faster Cooldowns', 'Priority Support'], isPopular: true },
-    { name: 'Gold' as Tier, usdPrice: 14.99, description: 'For serious enthusiasts.', features: ['20 EPSN per day', 'Exclusive Tools', 'Gold Badge'], isPopular: false },
-    { name: 'Platinum' as Tier, usdPrice: 24.99, description: 'For power users.', features: ['50 EPSN per day', 'All Tools', 'Platinum Community'], isPopular: false },
-    { name: 'Diamond' as Tier, usdPrice: 39.99, description: 'For ultimate power users.', features: ['100 EPSN per day', 'VIP Support', 'Exclusive NFT Access'], isPopular: false },
-];
+const plans = Object.entries(PLAN_CONFIG.FEATURES)
+  .filter(([name]) => name !== 'Free')
+  .map(([name, data]) => ({
+    name: name as Tier,
+    description: data.features.join(', '), // Create a description from features
+    features: data.features,
+    // You can add a popularity flag to your config if needed
+    isPopular: name === 'Silver', 
+  }));
+
 
 interface PlanPricing {
   usd: number;
@@ -68,7 +71,10 @@ export default function ShopPage() {
       setSolPrice(currentSolPrice);
       const pricing: Record<Tier, PlanPricing> = {} as Record<Tier, PlanPricing>;
       for (const plan of plans) {
-        pricing[plan.name] = await getPlanPricing(plan.usdPrice);
+         // We can't derive USD from SOL, so we might need a USD reference in config
+         // For now, let's assume a dummy conversion for display
+        const usdPrice = PLAN_CONFIG.PRICES[plan.name] * currentSolPrice;
+        pricing[plan.name] = await getPlanPricing(usdPrice);
       }
       setPlanPricing(pricing);
       setLastUpdated(new Date());
@@ -240,7 +246,7 @@ export default function ShopPage() {
                         <div className="relative">
                           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-lg blur-sm" />
                           <div className="relative bg-gradient-to-br from-background/80 to-background/60 p-3 rounded-lg border border-border/50">
-                            {isLoadingPrices ? <div className="animate-pulse"><div className="h-8 bg-muted rounded w-20 mb-1"></div><div className="h-4 bg-muted rounded w-16"></div></div> : pricing ? <><p className="font-headline text-3xl font-bold text-primary">{formatSolAmount(pricing.sol)} SOL</p><p className="text-xs text-muted-foreground">one-time</p></> : <p className="text-sm text-muted-foreground">Loading...</p>}
+                            {isLoadingPrices ? <div className="animate-pulse"><div className="h-8 bg-muted rounded w-20 mb-1"></div><div className="h-4 bg-muted rounded w-16"></div></div> : pricing ? <><p className="font-headline text-3xl font-bold text-primary">{formatSolAmount(PLAN_CONFIG.PRICES[plan.name])} SOL</p><p className="text-xs text-muted-foreground">one-time</p></> : <p className="text-sm text-muted-foreground">Loading...</p>}
                           </div>
                         </div>
                         {pricing && <div className="flex items-center gap-1 justify-end"><span className="text-xs text-muted-foreground">≈ {formatUsdAmount(pricing.usd)}</span>{pricing.isStale && <span className="text-xs text-orange-500">(Cached)</span>}</div>}
