@@ -81,7 +81,7 @@ export const PLAN_CONFIG = {
 export const REFERRAL_CONFIG = {
   // Reward amounts (public)
   REWARDS: {
-    referrer: 20,      // EPSN for referrer
+    referrer: 1,      // EPSN for referrer
     referee: 10,       // EPSN for referee
   },
   

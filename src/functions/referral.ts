@@ -1,4 +1,3 @@
-
 import {HttpsError, CallableRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
@@ -15,7 +14,7 @@ interface ReferralRewards {
 
 // Referral reward configuration
 const REFERRAL_REWARDS: ReferralRewards = {
-  referrer: 20, // Referrer gets 20 EPSN
+  referrer: 1, // Referrer gets 1 EPSN
   referee: 10,  // Referee gets 10 EPSN
 };
 
@@ -58,30 +57,29 @@ export const processReferral = async (request: CallableRequest<ProcessReferralDa
         throw new HttpsError("invalid-argument", "Cannot use your own referral code");
       }
 
-      // 3. Check if user (referee) already exists and has been referred
+      // 3. Check if user already has a referral
       const referredUserRef = db.collection("users").doc(referredUid);
       const referredUserDoc = await transaction.get(referredUserRef);
 
       if (!referredUserDoc.exists) {
-        // This case should ideally not happen if getOrCreateUserDocument runs first
-        throw new HttpsError("not-found", "Referred user document not found. Please sign up first.");
+        throw new HttpsError("not-found", "User document not found");
       }
 
       const referredUserData = referredUserDoc.data()!;
 
-      // Check if user has already used a referral code
+      // Check if user already used a referral code
       if (referredUserData.referredBy) {
         throw new HttpsError("already-exists", "You have already used a referral code");
       }
-      
-      // 4. Check for duplicate referral processing
-      const existingReferralQuery = db.collection("referrals").where("referredUid", "==", referredUid).limit(1);
+
+      // 4. Check for duplicate referral
+      const existingReferralQuery = db.collection("referrals")
+        .where("referredUid", "==", referredUid);
       const existingReferralSnapshot = await transaction.get(existingReferralQuery);
 
       if (!existingReferralSnapshot.empty) {
-        throw new HttpsError("already-exists", "Referral bonus has already been processed for this user.");
+        throw new HttpsError("already-exists", "Referral already processed");
       }
-
 
       // 5. Create referral record
       const referralRef = db.collection("referrals").doc();
@@ -111,8 +109,8 @@ export const processReferral = async (request: CallableRequest<ProcessReferralDa
 
       transaction.update(referrerDoc.ref, {
         balance: admin.firestore.FieldValue.increment(REFERRAL_REWARDS.referrer),
-        "referralStats.totalReferred": admin.firestore.FieldValue.increment(1),
-        "referralStats.totalEarned": admin.firestore.FieldValue.increment(REFERRAL_REWARDS.referrer),
+        "referralStats.totalReferred": referrerStats.totalReferred + 1,
+        "referralStats.totalEarned": referrerStats.totalEarned + REFERRAL_REWARDS.referrer,
         "referralStats.lastReferralAt": now,
         updatedAt: now,
       });
