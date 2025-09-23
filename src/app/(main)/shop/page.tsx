@@ -34,9 +34,8 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
   .filter(([name]) => name !== 'Free')
   .map(([name, data]) => ({
     name: name as Tier,
-    description: data.features.join(', '), // Create a description from features
+    description: data.features.join(', '),
     features: data.features,
-    // You can add a popularity flag to your config if needed
     isPopular: name === 'Silver', 
   }));
 
@@ -71,8 +70,6 @@ export default function ShopPage() {
       setSolPrice(currentSolPrice);
       const pricing: Record<Tier, PlanPricing> = {} as Record<Tier, PlanPricing>;
       for (const plan of plans) {
-         // We can't derive USD from SOL, so we might need a USD reference in config
-         // For now, let's assume a dummy conversion for display
         const usdPrice = PLAN_CONFIG.PRICES[plan.name] * currentSolPrice;
         pricing[plan.name] = await getPlanPricing(usdPrice);
       }
@@ -174,7 +171,6 @@ export default function ShopPage() {
             const errorJson = JSON.parse(errorText);
             errorMessage = errorJson.error || errorMessage;
           } catch (e) {
-            // The error response was not JSON, use the raw text if it's not too long
             if (errorText.length < 200) {
               errorMessage = errorText;
             }
@@ -258,7 +254,7 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('w-full sm:w-auto flex-1 h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('w-full sm:w-auto h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isProcessing && purchasingPlan === plan.name && !isCreatingLink ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -274,7 +270,7 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="w-full sm:w-auto h-12 font-semibold text-base px-4">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="w-full sm:w-auto h-10 font-semibold text-sm px-4">
                           {isLinkCreationInProgress ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
