@@ -1,7 +1,7 @@
+
 import * as admin from "firebase-admin";
 import {Connection, PublicKey} from "@solana/web3.js";
 import { PlanUtils, VALID_PLAN_IDS } from "./config/plans";
-import * as cors from 'cors';
 import { Request, Response } from "firebase-functions";
 
 const db = admin.firestore();
@@ -9,39 +9,9 @@ const connection = new Connection("https://rpc-mainnet.solanatracker.io/?api_key
 
 const MERCHANT_WALLET = new PublicKey("Fj86LrcDNkiDRs3rQs4dZEDaj769N8bTTvipANV8vBby");
 
-// Konfigurasi CORS terpusat
-const corsOptions = {
-  origin: [
-    'https://psnchainaidrop.digital',
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://localhost:3000',
-    'https://localhost:3001',
-    'https://6000-firebase-studio-1758420129221.cluster-qxqlf3vb3nbf2r42l5qfoebdry.cloudworkstations.dev'
-  ],
-  methods: 'GET, POST, OPTIONS',
-  allowedHeaders: 'Content-Type, Authorization',
-  credentials: true,
-};
 
-// Buat middleware CORS
-const corsMiddleware = cors(corsOptions);
-
-// Wrapper untuk menerapkan middleware ke handler fungsi
-const withCors = (handler: (req: Request, res: Response) => Promise<void>) => {
-  return (req: Request, res: Response) => {
-    corsMiddleware(req, res, async () => {
-      if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
-      }
-      await handler(req, res);
-    });
-  };
-};
-
-// Handler asli untuk membuat intent
-const createSolanaIntentHandler = async (req: Request, res: Response) => {
+// The withCors wrapper is now in index.ts, so we just export the raw handlers.
+export const corsCreateSolanaIntent = async (req: Request, res: Response) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -76,7 +46,7 @@ const createSolanaIntentHandler = async (req: Request, res: Response) => {
       currency: "SOL",
       createdAt: now,
       updatedAt: now,
-      planUpgraded: false, // NEW: Field to track fulfillment
+      planUpgraded: false, 
     });
 
     res.status(200).json({
@@ -95,8 +65,8 @@ const createSolanaIntentHandler = async (req: Request, res: Response) => {
   }
 };
 
-// Handler asli untuk konfirmasi pembayaran
-const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
+
+export const corsConfirmSolanaPayment = async (req: Request, res: Response) => {
   try {
     const { transactionId, signature, paymentToken } = req.body;
     if (!signature) {
@@ -116,7 +86,7 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
       // --- Logic for Payment Link ---
       const intentRef = db.collection('paymentIntents').doc(paymentToken);
       const intentDoc = await intentRef.get();
-      if (!intentDoc.exists) throw new Error('Payment link not found');
+      if (!intentDoc.exists) throw new Error('Payment link not found or expired');
       
       const intentData = intentDoc.data()!;
       if (intentData.status !== 'pending') throw new Error('Payment link already used');
@@ -133,7 +103,7 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
     } else if (transactionId) {
       // --- Logic for Direct Purchase (user is logged in) ---
       const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Bearer ')) throw new Error('Missing or invalid authorization header');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) throw new Error('Missing or invalid authorization header for direct purchase');
       
       const token = authHeader.split('Bearer ')[1];
       const decodedToken = await admin.auth().verifyIdToken(token);
@@ -144,8 +114,8 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
 
       if (!transactionDoc.exists) throw new Error('Transaction not found');
       const transactionData = transactionDoc.data()!;
-      if (transactionData.uid !== uid) throw new Error('Access denied');
-      if (transactionData.status === "paid") return res.status(200).json({ success: true, message: "Already confirmed" });
+      if (transactionData.uid !== uid) throw new Error('Access denied to this transaction');
+      if (transactionData.status === "paid") return res.status(200).json({ success: true, message: "Payment already confirmed" });
 
       // Update transaction to 'paid'. Admin will approve later.
       await transactionRef.update({
@@ -171,8 +141,3 @@ const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
     }
   }
 };
-
-
-// Ekspor fungsi yang sudah dibungkus dengan middleware CORS
-export const corsCreateSolanaIntent = withCors(createSolanaIntentHandler);
-export const corsConfirmSolanaPayment = withCors(confirmSolanaPaymentHandler);
