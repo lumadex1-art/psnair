@@ -42,6 +42,7 @@ type AppState = {
   lastClaimTimestamp: number | null;
   isLoggedIn: boolean;
   isLoading: boolean;
+  setIsLoggedIn: (isLoggedIn: boolean) => void; // Add this to handle custom auth flow
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
@@ -217,6 +218,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     lastClaimTimestamp, 
     isLoggedIn, 
     isLoading, 
+    setIsLoggedIn,
     loginWithGoogle,
     logout, 
     claimTokens, 
