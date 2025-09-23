@@ -11,7 +11,7 @@ admin.initializeApp();
 console.log('✅ Firebase Admin initialized.');
 
 // --- CENTRALIZED CORS CONFIGURATION ---
-const corsOptions = {
+const corsMiddleware = cors({
   origin: [
     'https://psnchainaidrop.digital',
     'http://localhost:3000',
@@ -23,15 +23,22 @@ const corsOptions = {
   methods: 'GET, POST, OPTIONS',
   allowedHeaders: 'Content-Type, Authorization',
   credentials: true,
-};
+  maxAge: 86400, // Cache preflight for 1 day
+});
 
-const corsMiddleware = cors(corsOptions);
-
-const withCors = (handler: (req: Request, res: Response) => void) => {
+// Wrapper to apply CORS middleware to our HTTP function handlers
+const withCors = (handler: (req: Request, res: Response) => void | Promise<void>) => {
   return onRequest((req: Request, res: Response) => {
+    // Manually handle preflight requests
+    if (req.method === 'OPTIONS') {
+        corsMiddleware(req, res, () => {
+            res.status(204).send('');
+        });
+        return;
+    }
+    // Handle actual requests
     corsMiddleware(req, res, () => {
-      // The actual handler logic is now inside the cors middleware callback.
-      handler(req, res);
+        handler(req, res);
     });
   });
 };
@@ -58,25 +65,25 @@ import { verifyAuthToken, createLoginLink, createPaymentLink, getPaymentLinkDeta
 // Solana Functions
 export const solanaCreateIntentCors = withCors(corsCreateSolanaIntent);
 export const solanaConfirmCors = withCors(corsConfirmSolanaPayment);
-export const solanaCreateIntent = withCors(corsCreateSolanaIntent); // Alias
-export const solanaConfirm = withCors(corsConfirmSolanaPayment);     // Alias
+export const solanaCreateIntent = withCors(corsCreateSolanaIntent); // Alias for frontend
+export const solanaConfirm = withCors(corsConfirmSolanaPayment);     // Alias for frontend
 
-// Admin Functions
+// Admin Functions (HTTP versions)
 export const getAdminPayments = withCors(adminGetPaymentsHttp);
-export const approveAdminPaymentHttp = withCors(adminApprovePaymentHttp); // Renaming for clarity
+export const approveAdminPayment = withCors(adminApprovePaymentHttp); // Renaming for clarity
 
 // Auth and Payment Link functions
-export const wrappedVerifyAuthToken = withCors(verifyAuthToken);
-export const wrappedCreateLoginLink = withCors(createLoginLink);
-export const wrappedCreatePaymentLink = withCors(createPaymentLink);
-export const wrappedGetPaymentLinkDetails = withCors(getPaymentLinkDetails);
+export const verifyAuthTokenHttp = withCors(verifyAuthToken);
+export const createLoginLinkHttp = withCors(createLoginLink);
+export const createPaymentLink = withCors(createPaymentLink);
+export const getPaymentLinkDetailsHttp = withCors(getPaymentLinkDetails);
 
 
-// --- EXPORT CALLABLE FUNCTIONS (No CORS needed) ---
+// --- EXPORT CALLABLE FUNCTIONS (No CORS needed as it's handled by Firebase) ---
 export const claim = onCall(claimReward);
 
 // Admin callable functions
-export { adminGetPayments, adminApprovePayment, adminGetPendingPayments, adminGetAnalytics, adminRefundPayment };
+export { adminGetPayments as adminGetPaymentsOnCall, adminApprovePayment as adminApprovePaymentOnCall, adminGetPendingPayments, adminGetAnalytics, adminRefundPayment };
 
 // Referral callable functions
 export const referralProcess = onCall(processReferral);
