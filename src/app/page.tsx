@@ -1,7 +1,7 @@
 
 'use client';
 
-import { ArrowRight, LogIn, Mail, Loader2 } from 'lucide-react';
+import { ArrowRight, LogIn, Mail, Loader2, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
@@ -12,17 +12,14 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Endpoint for the new Cloud Function
-const SEND_LOGIN_LINK_URL = 'https://sendloginlink-ivtinaswgq-uc.a.run.app';
-
 export default function LoginPage() {
-  const { isLoggedIn, loginWithGoogle, isLoading: isAuthLoading } = useAppContext();
+  const { isLoggedIn, loginWithGoogle, loginWithEmail, isLoading: isAuthLoading } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
   const [email, setEmail] = useState('');
-  const [isSendingLink, setIsSendingLink] = useState(false);
-  const [linkSent, setLinkSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     // If user is logged in, redirect to the claim page
@@ -35,47 +32,37 @@ export default function LoginPage() {
     await loginWithGoogle();
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleEmailPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
+    if (!email || !password) {
       toast({
         variant: 'destructive',
-        title: 'Email Required',
-        description: 'Please enter your email address.',
+        title: 'Input Required',
+        description: 'Please enter both email and password.',
+      });
+      return;
+    }
+    if (password.length < 6) {
+      toast({
+        variant: 'destructive',
+        title: 'Password Too Short',
+        description: 'Password must be at least 6 characters.',
       });
       return;
     }
 
-    setIsSendingLink(true);
-    setLinkSent(false);
+    setIsProcessing(true);
+    const result = await loginWithEmail(email, password);
+    setIsProcessing(false);
 
-    try {
-      const response = await fetch(SEND_LOGIN_LINK_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to send login link. Please try again.');
-      }
-
-      setLinkSent(true);
-      toast({
-        title: 'Link Sent!',
-        description: 'Please check your email for the magic login link.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error.message,
-      });
-    } finally {
-      setIsSendingLink(false);
+    if (!result.success) {
+        toast({
+            variant: 'destructive',
+            title: result.errorTitle || 'Login Failed',
+            description: result.errorMessage || 'An unknown error occurred.',
+        });
     }
+    // On success, the useEffect hook will handle the redirect
   };
   
   if (isAuthLoading || isLoggedIn) {
@@ -122,14 +109,14 @@ export default function LoginPage() {
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">Join the Airdrop</h2>
                 <p className="text-sm text-muted-foreground">
-                  Sign in with Google or use a magic link
+                  Sign in with Google or use your email
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
                <Button 
                 onClick={handleGoogleLogin} 
-                disabled={isAuthLoading}
+                disabled={isAuthLoading || isProcessing}
                 className="w-full !h-12 !text-base !font-bold hover:!bg-primary/90 !transition-all !duration-200 !rounded-lg"
                >
                  <Image src="/google.svg" alt="Google" width={24} height={24} className="mr-3" />
@@ -145,16 +132,7 @@ export default function LoginPage() {
                  </div>
                </div>
               
-              {linkSent ? (
-                <Alert variant="default" className="bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-                  <Mail className="h-4 w-4 text-green-600 dark:text-green-400" />
-                  <AlertTitle className="text-green-700 dark:text-green-300">Check Your Inbox!</AlertTitle>
-                  <AlertDescription className="text-green-600 dark:text-green-400">
-                    A magic login link has been sent to your email.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <form onSubmit={handleEmailLogin} className="space-y-3">
+                <form onSubmit={handleEmailPasswordLogin} className="space-y-3">
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input 
@@ -166,15 +144,25 @@ export default function LoginPage() {
                       className="pl-10 h-12"
                     />
                   </div>
-                  <Button type="submit" disabled={isSendingLink || !email} className="w-full h-12 text-base font-bold">
-                    {isSendingLink ? (
-                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Sending...</>
+                   <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input 
+                      type="password" 
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                      className="pl-10 h-12"
+                    />
+                  </div>
+                  <Button type="submit" disabled={isProcessing || !email || !password} className="w-full h-12 text-base font-bold">
+                    {isProcessing ? (
+                      <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Processing...</>
                     ) : (
-                      'Send Magic Link'
+                      'Sign In / Sign Up'
                     )}
                   </Button>
                 </form>
-              )}
             </CardContent>
           </Card>
         

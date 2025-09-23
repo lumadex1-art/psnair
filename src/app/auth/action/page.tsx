@@ -4,7 +4,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { applyActionCode, verifyPasswordResetCode, confirmPasswordReset, signInWithCustomToken } from 'firebase/auth';
+import { applyActionCode, verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,20 +13,13 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Loader2, CheckCircle, AlertTriangle, KeyRound } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAppContext } from '@/contexts/AppContext';
-
-// This is the URL of your new Cloud Function
-const VERIFY_TOKEN_URL = 'https://verifyauthtoken-ivtinaswgq-uc.a.run.app';
-
 
 function ActionHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const {setIsLoggedIn} = useAppContext();
 
   const mode = searchParams.get('mode');
   const actionCode = searchParams.get('oobCode');
-  const token = searchParams.get('token'); // New parameter for magic link
   const continueUrl = searchParams.get('continueUrl');
 
 
@@ -39,33 +32,6 @@ function ActionHandler() {
     const handleAction = async () => {
       try {
         switch (mode) {
-          case 'tokenLogin':
-            if (!token) throw new Error("Login token is missing.");
-            setStatus('loading');
-            setMessage('Securely logging you in...');
-            
-            const response = await fetch(VERIFY_TOKEN_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(data.error || "Login link is invalid or has expired.");
-            }
-
-            // Sign in to Firebase with the custom token from the backend
-            await signInWithCustomToken(auth, data.firebaseToken);
-            
-            setStatus('success');
-            setMessage('Login successful! You will be redirected shortly.');
-            setIsLoggedIn(true); // Manually set login state
-            // Redirect to the main app page or a specific page
-            setTimeout(() => router.replace(continueUrl || '/claim'), 2000);
-            break;
-
           case 'verifyEmail':
             if (!actionCode) throw new Error("Action code is missing.");
             await applyActionCode(auth, actionCode);
@@ -92,7 +58,7 @@ function ActionHandler() {
     };
 
     handleAction();
-  }, [mode, actionCode, token, router, continueUrl, setIsLoggedIn]);
+  }, [mode, actionCode, router]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,8 +98,8 @@ function ActionHandler() {
               {message}
             </AlertDescription>
             <div className="mt-4">
-                <Link href={continueUrl || '/claim'}>
-                    <Button className="w-full">Continue to App</Button>
+                <Link href={continueUrl || '/'}>
+                    <Button className="w-full">Continue to Login</Button>
                 </Link>
             </div>
           </Alert>

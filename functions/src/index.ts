@@ -57,7 +57,7 @@ import {
 } from "./admin";
 import { claimReward } from "./claim";
 import { processReferral, getReferralStats, validateReferralCode } from "./referral";
-import { sendLoginLink, verifyAuthToken, createLoginLink, createPaymentLink, getPaymentLinkDetails } from './auth';
+import { createPaymentLink, getPaymentLinkDetails } from './auth';
 
 
 // --- EXPORT HTTP-BASED FUNCTIONS WITH CORS WRAPPER ---
@@ -73,9 +73,6 @@ export const getAdminPayments = withCors(adminGetPaymentsHttp);
 export const approveAdminPayment = withCors(adminApprovePaymentHttp); // Renaming for clarity
 
 // Auth and Payment Link functions
-export const sendLoginLinkHttp = withCors(sendLoginLink);
-export const verifyAuthTokenHttp = withCors(verifyAuthToken);
-export const createLoginLinkHttp = withCors(createLoginLink);
 export const createPaymentLinkHttp = withCors(createPaymentLink);
 export const getPaymentLinkDetailsHttp = withCors(getPaymentLinkDetails);
 
