@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Wallet, RefreshCw, TrendingUp, Link as LinkIcon, Share2, Loader2, Landmark } from 'lucide-react';
+import { CheckCircle, Wallet, RefreshCw, TrendingUp, Link as LinkIcon, Share2, Loader2, Landmark, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -81,6 +81,7 @@ export default function ShopPage() {
   // State for Bank Transfer Dialog
   const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
   const [bankTransferDetails, setBankTransferDetails] = useState<BankTransferDetails | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const loadPricing = async () => {
     try {
@@ -226,6 +227,13 @@ export default function ShopPage() {
   const copyLink = () => {
     navigator.clipboard.writeText(paymentLink);
     toast({ title: 'Copied!', description: 'Payment link copied to clipboard.' });
+  };
+  
+  const handleCopy = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    toast({ title: `${type} Copied!`, description: `Copied to clipboard.` });
+    setTimeout(() => setCopied(null), 2000);
   };
 
 
@@ -378,12 +386,22 @@ export default function ShopPage() {
                      <h4 className="font-semibold">Rekening Tujuan</h4>
                      <div className="p-3 bg-muted rounded-lg border">
                          <p className="font-bold text-blue-600">BCA</p>
-                         <p className="font-mono text-lg">4364543214</p>
+                         <div className="flex items-center justify-between">
+                            <p className="font-mono text-lg">4364543214</p>
+                            <Button variant="ghost" size="icon" onClick={() => handleCopy('4364543214', 'BCA')}>
+                               {copied === 'BCA' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                         </div>
                          <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
                      </div>
                       <div className="p-3 bg-muted rounded-lg border">
                          <p className="font-bold text-blue-800">MANDIRI</p>
-                         <p className="font-mono text-lg">1220013904209</p>
+                          <div className="flex items-center justify-between">
+                            <p className="font-mono text-lg">1220013904209</p>
+                            <Button variant="ghost" size="icon" onClick={() => handleCopy('1220013904209', 'Mandiri')}>
+                               {copied === 'Mandiri' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                            </Button>
+                          </div>
                          <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
                      </div>
                 </div>
@@ -413,5 +431,3 @@ export default function ShopPage() {
   );
 }
 
-
-    
