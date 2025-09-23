@@ -1,27 +1,36 @@
 
 'use client';
 
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, LogIn } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { useEffect } from 'react';
 import Image from 'next/image';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 export default function LoginPage() {
-  const { isLoggedIn } = useAppContext();
-  const { connected } = useWallet();
+  const { isLoggedIn, loginWithGoogle, isLoading } = useAppContext();
   const router = useRouter();
 
   useEffect(() => {
-    // If wallet is connected and app context is logged in, redirect
-    if (isLoggedIn && connected) {
+    // If user is logged in, redirect to the claim page
+    if (isLoggedIn) {
       router.replace('/claim');
     }
-  }, [isLoggedIn, connected, router]);
+  }, [isLoggedIn, router]);
+
+  const handleGoogleLogin = async () => {
+    await loginWithGoogle();
+  };
+  
+  if (isLoading || isLoggedIn) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
@@ -59,14 +68,21 @@ export default function LoginPage() {
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">Join the Airdrop</h2>
                 <p className="text-sm text-muted-foreground">
-                  Connect your Solana wallet to begin
+                  Sign in with your Google account to begin
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-               <WalletMultiButton className="!w-full !bg-primary !text-primary-foreground !h-12 !text-base !font-bold hover:!bg-primary/90 !transition-all !duration-200 !rounded-lg" />
+               <Button 
+                onClick={handleGoogleLogin} 
+                disabled={isLoading}
+                className="w-full !h-12 !text-base !font-bold hover:!bg-primary/90 !transition-all !duration-200 !rounded-lg"
+               >
+                 <Image src="/google.svg" alt="Google" width={24} height={24} className="mr-3" />
+                 Sign in with Google
+               </Button>
               <p className="text-center text-xs text-muted-foreground">
-                We support Phantom, Solflare, and other popular wallets.
+                We'll create an account for you if you don't have one.
               </p>
             </CardContent>
           </Card>
@@ -74,7 +90,7 @@ export default function LoginPage() {
           {/* Footer */}
           <div className="text-center space-y-2 pt-6">
             <p className="text-xs text-muted-foreground">
-              By connecting your wallet, you agree to our Terms of Service.
+              By signing in, you agree to our Terms of Service.
             </p>
           </div>
         </div>

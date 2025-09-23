@@ -9,35 +9,20 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth, db } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signInWithCustomToken, signOut, UserCredential } from 'firebase/auth';
+import { auth, db, googleProvider } from '@/lib/firebase';
+import { User as FirebaseUser, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
-import { clearAllDummyData, isDummyUser } from '@/utils/clearDummyData';
-import { migrateUserBalanceToFirestore } from '@/utils/migrateBalance';
-import { printBalanceDebug } from '@/utils/balanceDebug';
-import { calculateUserBalance, verifyBalanceConsistency } from '@/utils/balanceCalculator';
-import { generateUniqueReferralCode } from '@/utils/referralCode';
-import { PLAN_CONFIG } from '@/lib/config';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
-
-// Helper functions for real user data
-const generateAvatarUrl = (name: string): string => {
-  const cleanName = encodeURIComponent(name.trim());
-  return `https://api.dicebear.com/7.x/initials/svg?seed=${cleanName}&backgroundColor=6366f1&textColor=ffffff`;
-};
-
-const generateReferralCode = (uid: string): string => {
-  const hash = uid.slice(-8).toUpperCase();
-  return `EPS${hash}`;
-};
-
+import { PLAN_CONFIG } from '@/lib/config';
+import { generateUniqueReferralCode } from '@/utils/referralCode';
+import { useToast } from '@/hooks/use-toast';
 
 type User = {
   uid: string;
   name: string;
   username: string;
   avatar: string;
+  email: string;
 };
 
 type Referral = {
@@ -47,17 +32,9 @@ type Referral = {
 
 type UserTier = keyof typeof PLAN_CONFIG.PRICES;
 
-type LocalState = {
-  user: User | null;
-  balance: number;
-  referralCode: string;
-  referrals: Referral[];
-  userTier: UserTier;
-  lastClaimTimestamp: number | null;
-};
-
 type AppState = {
   user: User | null;
+  firebaseUser: FirebaseUser | null;
   balance: number;
   referralCode: string;
   referrals: Referral[];
@@ -65,6 +42,7 @@ type AppState = {
   lastClaimTimestamp: number | null;
   isLoggedIn: boolean;
   isLoading: boolean;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
   purchasePlan: (plan: UserTier) => void;
@@ -72,175 +50,178 @@ type AppState = {
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
-const initialState: LocalState = {
-  user: null,
-  balance: 0,
-  referralCode: '',
-  referrals: [],
-  userTier: 'Free' as UserTier,
-  lastClaimTimestamp: null,
-};
-
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
-  const [state, setState] = useState<LocalState>(initialState);
+  const [balance, setBalance] = useState<number>(0);
+  const [referralCode, setReferralCode] = useState<string>('');
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [userTier, setUserTier] = useState<UserTier>('Free');
+  const [lastClaimTimestamp, setLastClaimTimestamp] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const { connected, publicKey, disconnect } = useWallet();
+  const { disconnect } = useWallet();
+  const { toast } = useToast();
 
-  // Load user data from Firestore
-  const loadUserDataFromFirestore = useCallback(async (uid: string) => {
-    try {
-      const userDocRef = doc(db, 'users', uid);
-      const userDoc = await getDoc(userDocRef);
-      
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        setState(prevState => ({
-          ...prevState,
-          balance: userData.balance || 0,
-          userTier: userData.plan?.id || 'Free',
-          lastClaimTimestamp: userData.claimStats?.lastClaimAt?.toMillis() || null,
-          referralCode: userData.referralCode || prevState.referralCode,
-        }));
-        return userData;
-      } else {
-        const referralCode = await generateUniqueReferralCode(uid);
-        const newUserData = {
-          balance: 0,
-          referralCode: referralCode,
-          referralStats: { totalReferred: 0, totalEarned: 0, lastReferralAt: null },
-          plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
-          claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
-          createdAt: Timestamp.fromDate(new Date()),
-          updatedAt: Timestamp.fromDate(new Date()),
-        };
-        await setDoc(userDocRef, newUserData);
-        setState(prevState => ({
-          ...prevState,
-          balance: 0,
-          userTier: 'Free' as UserTier,
-          lastClaimTimestamp: null,
-          referralCode: referralCode,
-        }));
-        return newUserData;
-      }
-    } catch (error) {
-      console.error('Error loading/creating user document:', error);
-      return null;
+  const getOrCreateUserDocument = useCallback(async (fbUser: FirebaseUser) => {
+    const userDocRef = doc(db, 'users', fbUser.uid);
+    let userDoc = await getDoc(userDocRef);
+
+    if (!userDoc.exists()) {
+      const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
+      const newUser = {
+        displayName: fbUser.displayName || 'Anonymous User',
+        email: fbUser.email,
+        providers: { google: true },
+        balance: 0,
+        plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
+        claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
+        referralCode: generatedReferralCode,
+        referralStats: { totalReferred: 0, totalEarned: 0, lastReferralAt: null },
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      };
+      await setDoc(userDocRef, newUser);
+      userDoc = await getDoc(userDocRef); // Re-fetch the doc
+    }
+    return userDoc;
+  }, []);
+
+  const syncUserData = useCallback((fbUser: FirebaseUser | null) => {
+    if (fbUser) {
+      const unsubscribe = onSnapshot(doc(db, "users", fbUser.uid), (doc) => {
+        if (doc.exists()) {
+          const userData = doc.data();
+          const appUser: User = {
+            uid: fbUser.uid,
+            name: userData.displayName || fbUser.displayName || 'User',
+            username: (userData.displayName || fbUser.displayName || 'user').replace(/\s+/g, '').toLowerCase(),
+            avatar: fbUser.photoURL || '',
+            email: userData.email || fbUser.email || '',
+          };
+          setUser(appUser);
+          setBalance(userData.balance || 0);
+          setUserTier(userData.plan?.id || 'Free');
+          setLastClaimTimestamp(userData.claimStats?.lastClaimAt?.toMillis() || null);
+          setReferralCode(userData.referralCode || '');
+        }
+      });
+      return unsubscribe;
+    } else {
+      // Clear all state on logout
+      setUser(null);
+      setFirebaseUser(null);
+      setBalance(0);
+      setReferralCode('');
+      setReferrals([]);
+      setUserTier('Free');
+      setLastClaimTimestamp(null);
+      setIsLoggedIn(false);
     }
   }, []);
 
-  // Effect to handle wallet connection state changes
   useEffect(() => {
-    const handleAuth = async () => {
-      if (connected && publicKey) {
-        setIsLoading(true);
-        try {
-          // This is a placeholder for a real backend call
-          // In a real app, you would send publicKey.toBase58() to your backend,
-          // verify it, and get a custom Firebase token.
-          // For this prototype, we'll simulate this by creating a UID from the public key.
-          const uid = publicKey.toBase58();
+    setIsLoading(true);
+    const unsubscribeAuth = onAuthStateChanged(auth, (fbUser) => {
+      setFirebaseUser(fbUser);
+      const unsubscribeSync = syncUserData(fbUser);
+      setIsLoggedIn(!!fbUser);
+      setIsLoading(false);
+      
+      return () => {
+        if (unsubscribeSync) unsubscribeSync();
+      };
+    });
 
-          // Simulate getting a custom token. In a real app, this would be a fetch call.
-          // For simplicity, we directly create a user. This is NOT secure for production.
-          // The correct way is `signInWithCustomToken(auth, customTokenFromServer)`
-          
-          const displayName = `${uid.slice(0, 4)}...${uid.slice(-4)}`;
-          const newUser: User = {
-            uid: uid,
-            name: displayName,
-            username: displayName,
-            avatar: generateAvatarUrl(uid),
-          };
-          
-          setUser(newUser);
-          setIsLoggedIn(true);
-          await loadUserDataFromFirestore(uid);
+    return () => unsubscribeAuth();
+  }, [syncUserData]);
 
-        } catch (error) {
-          console.error("Wallet login error:", error);
-          setIsLoggedIn(false);
-          setUser(null);
-          await disconnect();
-        } finally {
-          setIsLoading(false);
-        }
-      } else {
-        // Wallet disconnected
-        setIsLoggedIn(false);
-        setUser(null);
-        setFirebaseUser(null); // Clear firebase user as well
-        setState(initialState);
-        setIsLoading(false);
-      }
-    };
-
-    handleAuth();
-  }, [connected, publicKey, disconnect, loadUserDataFromFirestore]);
+  const loginWithGoogle = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      const fbUser = result.user;
+      await getOrCreateUserDocument(fbUser);
+      // Auth state change will handle the rest
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message || 'An unknown error occurred during login.',
+      });
+      setIsLoading(false);
+    }
+  }, [getOrCreateUserDocument, toast]);
 
   const logout = useCallback(async () => {
     setIsLoading(true);
-    await disconnect(); // This will trigger the useEffect to clear state
-    // state is cleared inside the useEffect when `connected` becomes false
-    setIsLoading(false);
-  }, [disconnect]);
-
- const claimTokens = useCallback(async (): Promise<{success: boolean, message: string}> => {
     try {
-      if (!user) { // Check for internal user state
-        return { success: false, message: 'Please connect your wallet first' };
-      }
+      await signOut(auth);
+      await disconnect(); // Disconnect wallet if connected
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Logout Failed',
+        description: error.message,
+      });
+    } finally {
+      // The onAuthStateChanged listener will handle state cleanup
+      setIsLoading(false);
+    }
+  }, [disconnect, toast]);
 
-      const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      
-      // In a real app with custom tokens, you would get the ID token here.
-      // const token = await firebaseUser.getIdToken();
-      // For this wallet-only approach, we pass the UID (publicKey) for identification.
-      
+  const claimTokens = useCallback(async (): Promise<{success: boolean, message: string}> => {
+    if (!firebaseUser) {
+      return { success: false, message: 'You must be logged in to claim tokens.' };
+    }
+    try {
       const { httpsCallable } = await import('firebase/functions');
       const { getFunctions } = await import('firebase/functions');
       const functions = getFunctions();
       const claimFunction = httpsCallable(functions, 'claim');
       
-      // The backend needs to be adapted to trust the UID without a JWT,
-      // or a proper custom token flow must be implemented.
-      // For now, we assume the 'claim' function can be called this way.
-      // A more secure way: the function would get UID from context if using custom tokens.
+      const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
       
-      // This call might fail if the function expects a Firebase Auth context,
-      // which we are bypassing.
-      // A dummy auth object is passed to satisfy onCall's internal checks if needed.
-      const result = await claimFunction({ idempotencyKey, uid: user.uid });
-      
+      const result = await claimFunction({ idempotencyKey });
       const data = result.data as any;
-      
+
       if (data.success) {
-        await loadUserDataFromFirestore(user.uid);
-        return { success: true, message: data.message || 'Claimed successfully' };
+        // Data will refresh via onSnapshot, but we can show a toast immediately
+        toast({ title: 'Success!', description: data.message });
+        return { success: true, message: data.message };
+      } else {
+        toast({ variant: 'destructive', title: 'Claim Failed', description: data.message });
+        return { success: false, message: data.message };
       }
-      return { success: false, message: data.message || 'Claim failed' };
     } catch (e: any) {
       console.error("Claim error:", e);
-      // This is a common error if the callable function expects an auth context
-      if (e.code === 'unauthenticated') {
-        return { success: false, message: 'Authentication error. Please reconnect your wallet.' };
-      }
-      return { success: false, message: e?.message || 'Network error' };
+      toast({ variant: 'destructive', title: 'Claim Error', description: e.message });
+      return { success: false, message: e?.message || 'An unknown error occurred.' };
     }
- }, [user, loadUserDataFromFirestore]);
+  }, [firebaseUser, toast]);
 
+  const purchasePlan = useCallback(async (plan: UserTier) => {
+    if (!firebaseUser) return;
+    const userDocRef = doc(db, 'users', firebaseUser.uid);
+    await updateDoc(userDocRef, { "plan.id": plan, "plan.upgradedAt": Timestamp.now() });
+    // State will update via onSnapshot
+  }, [firebaseUser]);
 
-  const purchasePlan = useCallback((plan: UserTier) => {
-    if (!user) return;
-    const userDocRef = doc(db, 'users', user.uid);
-    updateDoc(userDocRef, { "plan.id": plan });
-    setState((prevState) => ({ ...prevState, userTier: plan }));
-  }, [user]);
-
-  const value = { ...state, user, isLoggedIn, isLoading, logout, claimTokens, purchasePlan };
+  const value = { 
+    user, 
+    firebaseUser,
+    balance, 
+    referralCode, 
+    referrals, 
+    userTier, 
+    lastClaimTimestamp, 
+    isLoggedIn, 
+    isLoading, 
+    loginWithGoogle,
+    logout, 
+    claimTokens, 
+    purchasePlan 
+  };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
