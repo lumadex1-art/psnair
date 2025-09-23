@@ -210,10 +210,10 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices} className={cn('flex-1 w-full sm:w-auto h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices} className={cn('w-full sm:w-auto flex-1 h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isCurrentPlan ? 'Current Plan' : !connected ? 'Connect Wallet' : isLoadingPrices ? 'Loading Prices...' : `Upgrade to ${plan.name}`}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isCreatingLink} className="w-full sm:w-auto h-12 font-semibold text-base px-4">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isCreatingLink} className="h-12 font-semibold text-base px-4">
                           <LinkIcon className="mr-2 h-4 w-4" />
                           {isCreatingLink ? 'Creating...' : 'Create Payment Link'}
                       </Button>
@@ -243,3 +243,5 @@ export default function ShopPage() {
     </>
   );
 }
+
+    
