@@ -21,9 +21,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
+  DialogClose
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { PLAN_CONFIG } from '@/lib/config';
 
 type Tier = keyof typeof PLAN_CONFIG.PRICES;
@@ -39,12 +41,26 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
     isPopular: name === 'Silver', 
   }));
 
+const idrPrices: Record<Tier, string> = {
+    "Starter": "Rp65.600",
+    "Silver": "Rp131.200",
+    "Gold": "Rp262.400",
+    "Platinum": "Rp738.000",
+    "Diamond": "Rp1.476.000",
+    "Free": "Rp0",
+}
+
 
 interface PlanPricing {
   usd: number;
   sol: number;
   solPrice: number;
   isStale: boolean;
+}
+
+interface BankTransferDetails {
+    planName: Tier;
+    planPrice: string;
 }
 
 export default function ShopPage() {
@@ -62,6 +78,9 @@ export default function ShopPage() {
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [purchasingPlan, setPurchasingPlan] = useState<Tier | null>(null);
 
+  // State for Bank Transfer Dialog
+  const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
+  const [bankTransferDetails, setBankTransferDetails] = useState<BankTransferDetails | null>(null);
 
   const loadPricing = async () => {
     try {
@@ -171,7 +190,6 @@ export default function ShopPage() {
             const errorJson = JSON.parse(errorText);
             errorMessage = errorJson.error || errorMessage;
           } catch (e) {
-            // It's not a JSON error, use the raw text if it's not too long
             if (errorText.length < 200) {
               errorMessage = errorText;
             }
@@ -195,6 +213,14 @@ export default function ShopPage() {
         setPurchasingPlan(null);
     }
   };
+
+  const handleOpenBankTransfer = (planName: Tier) => {
+    setBankTransferDetails({
+        planName,
+        planPrice: idrPrices[planName]
+    });
+    setIsBankTransferOpen(true);
+  }
 
 
   const copyLink = () => {
@@ -255,7 +281,7 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('w-full sm:w-auto h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                       <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isProcessing && purchasingPlan === plan.name && !isCreatingLink ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -271,7 +297,7 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="w-full sm:w-auto h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="sm:w-auto w-full h-10 font-semibold text-sm">
                           {isLinkCreationInProgress ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -284,7 +310,7 @@ export default function ShopPage() {
                             </>
                           )}
                       </Button>
-                      <Button variant="outline" disabled={isCurrentPlan} className="w-full sm:w-auto h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => handleOpenBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
                         <Landmark className="mr-2 h-4 w-4" />
                         Bank Transfer
                       </Button>
@@ -311,6 +337,81 @@ export default function ShopPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bank Transfer Dialog */}
+      <Dialog open={isBankTransferOpen} onOpenChange={setIsBankTransferOpen}>
+        <DialogContent className="max-w-md">
+            <DialogHeader>
+                <DialogTitle>Formulir Transfer Bank</DialogTitle>
+                <DialogDescription>
+                    Silakan isi detail transfer Anda dan lakukan pembayaran ke salah satu rekening di bawah ini.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                    <p className="text-sm font-medium text-primary">Paket Dipilih</p>
+                    <p className="font-bold text-xl">{bankTransferDetails?.planName}</p>
+                    <p className="font-semibold text-lg">{bankTransferDetails?.planPrice}</p>
+                </div>
+                {/* Form Inputs */}
+                <div className="space-y-3">
+                    <div>
+                        <Label htmlFor="sender-name">Nama Pengirim</Label>
+                        <Input id="sender-name" placeholder="John Doe" />
+                    </div>
+                    <div>
+                        <Label htmlFor="sender-bank">Bank Pengirim</Label>
+                        <Input id="sender-bank" placeholder="BCA, Mandiri, etc." />
+                    </div>
+                    <div>
+                        <Label htmlFor="account-number">No. Rekening</Label>
+                        <Input id="account-number" placeholder="1234567890" />
+                    </div>
+                    <div>
+                        <Label htmlFor="amount-sent">Jumlah yang Dikirim</Label>
+                        <Input id="amount-sent" placeholder={bankTransferDetails?.planPrice} />
+                    </div>
+                </div>
+
+                {/* Bank Details */}
+                <div className="space-y-3 pt-4 border-t">
+                     <h4 className="font-semibold">Rekening Tujuan</h4>
+                     <div className="p-3 bg-muted rounded-lg border">
+                         <p className="font-bold text-blue-600">BCA</p>
+                         <p className="font-mono text-lg">4364543214</p>
+                         <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
+                     </div>
+                      <div className="p-3 bg-muted rounded-lg border">
+                         <p className="font-bold text-blue-800">MANDIRI</p>
+                         <p className="font-mono text-lg">1220013904209</p>
+                         <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
+                     </div>
+                </div>
+
+                {/* Confirmation */}
+                <div className="text-center p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                    <p className="text-sm text-green-700 dark:text-green-300">
+                        Setelah transfer, harap konfirmasi ke WhatsApp <strong className="font-mono">+6281320035308</strong>
+                    </p>
+                </div>
+            </div>
+            <DialogFooter>
+                <DialogClose asChild>
+                    <Button variant="secondary">Tutup</Button>
+                </DialogClose>
+                 <Button onClick={() => {
+                     toast({ title: 'Informasi Terkirim', description: 'Silakan lanjutkan transfer dan konfirmasi.' });
+                     setIsBankTransferOpen(false);
+                 }}>
+                    Kirim Informasi
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </>
   );
 }
+
+
+    
