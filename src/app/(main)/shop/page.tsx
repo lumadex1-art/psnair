@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Wallet, RefreshCw, TrendingUp, Link as LinkIcon, Share2 } from 'lucide-react';
+import { CheckCircle, Wallet, RefreshCw, TrendingUp, Link as LinkIcon, Share2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -58,6 +58,8 @@ export default function ShopPage() {
   const [isCreatingLink, setIsCreatingLink] = useState(false);
   const [paymentLink, setPaymentLink] = useState('');
   const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
+  const [purchasingPlan, setPurchasingPlan] = useState<Tier | null>(null);
+
 
   const loadPricing = async () => {
     try {
@@ -94,6 +96,7 @@ export default function ShopPage() {
       return;
     }
 
+    setPurchasingPlan(plan);
     try {
       const token = await currentUser.getIdToken();
       const intentResponse = await fetch('https://solanacreateintentcors-ivtinaswgq-uc.a.run.app', {
@@ -124,6 +127,8 @@ export default function ShopPage() {
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan. Please await admin approval.` });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
+    } finally {
+      setPurchasingPlan(null);
     }
   };
 
@@ -185,6 +190,7 @@ export default function ShopPage() {
             {plans.map((plan) => {
               const pricing = planPricing[plan.name];
               const isCurrentPlan = userTier === plan.name;
+              const isProcessing = purchasingPlan === plan.name;
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
                   {plan.isPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"><Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1 shadow-lg animate-pulse">⭐ MOST POPULAR</Badge></div>}
@@ -210,10 +216,23 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices} className={cn('w-full sm:w-auto flex-1 h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
-                          {isCurrentPlan ? 'Current Plan' : !connected ? 'Connect Wallet' : isLoadingPrices ? 'Loading Prices...' : `Upgrade to ${plan.name}`}
+                      <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('w-full sm:w-auto flex-1 h-12 font-semibold text-base', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                          {isProcessing ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Processing...
+                            </>
+                          ) : isCurrentPlan ? (
+                            'Current Plan'
+                          ) : !connected ? (
+                            'Connect Wallet'
+                          ) : isLoadingPrices ? (
+                            'Loading Prices...'
+                          ) : (
+                            `Upgrade to ${plan.name}`
+                          )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isCreatingLink} className="h-12 font-semibold text-base px-4">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isCreatingLink || isProcessing || !!purchasingPlan} className="h-12 font-semibold text-base px-4">
                           <LinkIcon className="mr-2 h-4 w-4" />
                           {isCreatingLink ? 'Creating...' : 'Create Payment Link'}
                       </Button>
