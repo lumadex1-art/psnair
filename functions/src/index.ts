@@ -21,7 +21,7 @@ import {
 } from "./admin";
 import { claimReward } from "./claim";
 import { processReferral, getReferralStats, validateReferralCode } from "./referral";
-import { verifyAuthToken, createLoginLink } from './auth';
+import { verifyAuthToken, createLoginLink, createPaymentLink, getPaymentLinkDetails } from './auth';
 
 
 // EXPORT HTTP-BASED SOLANA FUNCTIONS
@@ -46,5 +46,5 @@ export const referralProcess = onCall(processReferral);
 export const referralStats = onCall(getReferralStats);
 export const referralValidate = onCall(validateReferralCode);
 
-// Auth functions
-export { verifyAuthToken, createLoginLink };
+// Auth and Payment Link functions
+export { verifyAuthToken, createLoginLink, createPaymentLink, getPaymentLinkDetails };

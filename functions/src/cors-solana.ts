@@ -109,70 +109,80 @@ const createSolanaIntentHandler = async (req: Request, res: Response) => {
 // Handler asli untuk konfirmasi pembayaran
 const confirmSolanaPaymentHandler = async (req: Request, res: Response) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Missing or invalid authorization header' });
+    const { transactionId, signature, paymentToken } = req.body;
+    if (!signature) {
+      res.status(400).json({ error: 'Signature is required' });
       return;
     }
-
-    const token = authHeader.split('Bearer ')[1];
-    const decodedToken = await admin.auth().verifyIdToken(token);
-    const uid = decodedToken.uid;
-
-    const { transactionId, signature } = req.body;
-    if (!transactionId || !signature) {
-      res.status(400).json({ error: 'transactionId and signature required' });
-      return;
-    }
-
-    const transactionRef = db.collection("transactions").doc(transactionId);
-    const transactionDoc = await transactionRef.get();
-
-    if (!transactionDoc.exists) {
-      res.status(404).json({ error: 'Transaction not found' });
-      return;
-    }
-
-    const transactionData = transactionDoc.data()!;
-    if (transactionData.uid !== uid) {
-      res.status(403).json({ error: 'Access denied' });
-      return;
-    }
-
-    if (transactionData.status === "paid") {
-      res.status(200).json({ success: true, message: "Already confirmed" });
-      return;
-    }
-
+    
+    // --- VERIFY SIGNATURE ON-CHAIN ---
     const signatureStatus = await connection.getSignatureStatus(signature, { searchTransactionHistory: true });
     if (!signatureStatus.value || signatureStatus.value.err || !signatureStatus.value.confirmationStatus) {
       res.status(400).json({ error: 'Transaction verification failed on-chain' });
       return;
     }
 
-    // --- MODIFICATION: Just update transaction status to 'paid'. Do NOT upgrade plan. ---
-    await transactionRef.update({
-        status: "paid",
-        providerRef: signature,
-        confirmedAt: admin.firestore.Timestamp.now(),
-        updatedAt: admin.firestore.Timestamp.now(),
-    });
+    // --- HANDLE PAYMENT LOGIC (EITHER VIA PAYMENT LINK OR DIRECT PURCHASE) ---
+    if (paymentToken) {
+      // --- Logic for Payment Link ---
+      const intentRef = db.collection('paymentIntents').doc(paymentToken);
+      const intentDoc = await intentRef.get();
+      if (!intentDoc.exists) throw new Error('Payment link not found');
+      
+      const intentData = intentDoc.data()!;
+      if (intentData.status !== 'pending') throw new Error('Payment link already used');
+      
+      // Update user's plan
+      const userRef = db.collection('users').doc(intentData.uid);
+      await userRef.update({ 'plan.id': intentData.planId, 'plan.upgradedAt': admin.firestore.Timestamp.now() });
 
+      // Mark intent as complete
+      await intentRef.update({ status: 'completed', signature, completedAt: admin.firestore.Timestamp.now() });
+      
+      res.status(200).json({ success: true, message: "Payment successful. User's plan has been upgraded." });
 
-    res.status(200).json({
-      success: true,
-      message: "Payment confirmed. Pending admin approval.",
-      planId: transactionData.planId,
-    });
+    } else if (transactionId) {
+      // --- Logic for Direct Purchase (user is logged in) ---
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) throw new Error('Missing or invalid authorization header');
+      
+      const token = authHeader.split('Bearer ')[1];
+      const decodedToken = await admin.auth().verifyIdToken(token);
+      const uid = decodedToken.uid;
+      
+      const transactionRef = db.collection("transactions").doc(transactionId);
+      const transactionDoc = await transactionRef.get();
+
+      if (!transactionDoc.exists) throw new Error('Transaction not found');
+      const transactionData = transactionDoc.data()!;
+      if (transactionData.uid !== uid) throw new Error('Access denied');
+      if (transactionData.status === "paid") return res.status(200).json({ success: true, message: "Already confirmed" });
+
+      // Update transaction to 'paid'. Admin will approve later.
+      await transactionRef.update({
+          status: "paid",
+          providerRef: signature,
+          confirmedAt: admin.firestore.Timestamp.now(),
+          updatedAt: admin.firestore.Timestamp.now(),
+      });
+
+      res.status(200).json({ success: true, message: "Payment confirmed. Pending admin approval.", planId: transactionData.planId });
+      
+    } else {
+      res.status(400).json({ error: 'Either transactionId or paymentToken is required' });
+      return;
+    }
+
   } catch (error: any) {
     console.error("Confirm payment error:", error);
     if (error.code === 'auth/id-token-expired') {
         res.status(401).json({ error: 'Token expired, please re-authenticate' });
     } else {
-        res.status(500).json({ error: 'Payment confirmation failed' });
+        res.status(500).json({ error: error.message || 'Payment confirmation failed' });
     }
   }
 };
+
 
 // Ekspor fungsi yang sudah dibungkus dengan middleware CORS
 export const corsCreateSolanaIntent = withCors(createSolanaIntentHandler);
