@@ -289,7 +289,7 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                       <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full flex-1 h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                       <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isProcessing && purchasingPlan === plan.name && !isCreatingLink ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -305,7 +305,7 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="sm:w-auto w-full flex-1 h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => handleCreatePaymentLink(plan.name)} disabled={isCurrentPlan || isLinkCreationInProgress || (isProcessing && purchasingPlan === plan.name) } className="sm:w-auto w-full h-10 font-semibold text-sm">
                           {isLinkCreationInProgress ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -318,7 +318,7 @@ export default function ShopPage() {
                             </>
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleOpenBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full flex-1 h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => handleOpenBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
                         <Landmark className="mr-2 h-4 w-4" />
                         Bank Transfer
                       </Button>
@@ -441,5 +441,6 @@ export default function ShopPage() {
     </>
   );
 }
+
 
 
