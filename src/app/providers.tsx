@@ -18,9 +18,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
-      new SolflareWalletAdapter({ network }),
+      new SolflareWalletAdapter(),
     ],
-    [network]
+    []
   );
 
   return (
