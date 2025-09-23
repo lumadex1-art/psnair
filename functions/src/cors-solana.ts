@@ -1,4 +1,5 @@
 
+
 import * as admin from "firebase-admin";
 import {Connection, PublicKey} from "@solana/web3.js";
 import { PlanUtils, VALID_PLAN_IDS } from "./config/plans";
@@ -84,6 +85,8 @@ export const corsConfirmSolanaPayment = async (req: Request, res: Response) => {
     // --- HANDLE PAYMENT LOGIC (EITHER VIA PAYMENT LINK OR DIRECT PURCHASE) ---
     if (paymentToken) {
       // --- Logic for Payment Link ---
+      // This flow is public and doesn't require an auth header.
+      // The security is handled by the single-use, expiring paymentToken.
       const intentRef = db.collection('paymentIntents').doc(paymentToken);
       const intentDoc = await intentRef.get();
       if (!intentDoc.exists) throw new Error('Payment link not found or expired');
@@ -101,7 +104,7 @@ export const corsConfirmSolanaPayment = async (req: Request, res: Response) => {
       res.status(200).json({ success: true, message: "Payment successful. User's plan has been upgraded." });
 
     } else if (transactionId) {
-      // --- Logic for Direct Purchase (user is logged in) ---
+      // --- Logic for Direct Purchase (user must be logged in) ---
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) throw new Error('Missing or invalid authorization header for direct purchase');
       
