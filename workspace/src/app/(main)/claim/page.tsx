@@ -284,7 +284,7 @@ export default function ClaimPage() {
                   <>
                     <Zap className="h-6 w-6 animate-pulse"/>
                     <div className="text-center">
-                      <span>Claim 10 EPSN Now</span>
+                      <span>Claim EPSN Now</span>
                       <div className="text-xs opacity-80">
                         ({formatIDR(10 * EPSN_TO_IDR)} IDR)
                       </div>

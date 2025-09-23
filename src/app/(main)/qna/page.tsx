@@ -30,7 +30,7 @@ const qnaData = [
   {
     id: 3,
     question: "Bagaimana cara klaim Airdrop e-PSN?",
-    answer: "Proses klaim sangat mudah: 1) Login ke akun Anda, 2) Kunjungi halaman 'Claim', 3) Klik tombol 'Claim 10 EPSN Now', 4) Token akan langsung masuk ke balance Anda. Plan Free dapat klaim 1x per hari, sedangkan plan Premium bisa lebih sering sesuai tier yang dipilih.",
+    answer: "Proses klaim sangat mudah: 1) Login ke akun Anda, 2) Kunjungi halaman 'Claim', 3) Klik tombol 'Claim EPSN Now', 4) Token akan langsung masuk ke balance Anda. Plan Free dapat klaim 1x per hari, sedangkan plan Premium bisa lebih sering sesuai tier yang dipilih.",
     icon: <HelpCircle className="h-5 w-5" />,
     category: "Cara Kerja"
   },
