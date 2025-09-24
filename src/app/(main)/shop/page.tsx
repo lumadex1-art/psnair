@@ -42,12 +42,12 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
   }));
 
 const idrPrices: Record<Tier, string> = {
-    "Starter": "Rp65.600",
+    "Free": "Rp0",
+    "Starter": "Rp65.600",      // ✅ TAMBAHKAN: 0.0183486 SOL ≈ Rp65.600
     "Silver": "Rp131.200",
     "Gold": "Rp262.400",
     "Platinum": "Rp738.000",
     "Diamond": "Rp1.476.000",
-    "Free": "Rp0",
 }
 
 
@@ -64,9 +64,9 @@ interface BankTransferDetails {
 }
 
 export default function ShopPage() {
-  const { userTier, purchasePlan, user } = useAppContext();
+  const { userTier, user } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey, sendTransaction, signTransaction } = useWallet(); // ✅ TAMBAHKAN signTransaction
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
@@ -146,8 +146,63 @@ export default function ShopPage() {
       const confirmData = await confirmResponse.json();
       if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
       
-      purchasePlan(plan);
+     // purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan. Please await admin approval.` });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
+    } finally {
+      setPurchasingPlan(null);
+    }
+  };
+
+  const handleSolanaPurchase = async (plan: Tier) => {
+    if (!publicKey || !signTransaction) {
+      toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
+      return;
+    }
+
+    setPurchasingPlan(plan);
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      if (!token) throw new Error('Authentication required');
+
+      const response = await fetch('https://createpaymentlinkcors-ivtinaswgq-uc.a.run.app', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ planId: plan }),
+      });
+      const intent = await response.json();
+      if (!response.ok) throw new Error(intent.error || 'Failed to create payment intent');
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: publicKey,
+          toPubkey: MERCHANT_WALLET,
+          lamports: intent.amountLamports,
+        })
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = publicKey;
+
+      const signedTransaction = await signTransaction(transaction);
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
+      await connection.confirmTransaction(signature);
+      
+      const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+         body: JSON.stringify({ transactionId: intent.transactionId, signature }),
+      });
+      const confirmData = await confirmResponse.json();
+      if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
+      
+      // ✅ HAPUS: purchasePlan(plan); - fungsi ini sudah dihapus dari AppContext
+      toast({ 
+        title: 'Payment Verified!', 
+        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
+      });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     } finally {

@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, {
@@ -9,25 +8,28 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth, db } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signOut, RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-import { doc, getDoc, setDoc, updateDoc, onSnapshot, Timestamp } from 'firebase/firestore';
+import { auth, db, functions } from '@/lib/firebase';
+import { User as FirebaseUser, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
+import { doc, getDoc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PLAN_CONFIG } from '@/lib/config';
 import { generateUniqueReferralCode } from '@/utils/referralCode';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable } from 'firebase/functions';
-import { getFunctions } from 'firebase/functions';
 import { useSearchParams } from 'next/navigation';
+import type { PublicKey } from '@solana/web3.js';
+import type { Signer, MessageSignerWalletAdapterProps } from '@solana/wallet-adapter-base';
+
 
 type User = {
   uid: string;
   name: string;
   username: string;
   avatar: string;
-  email: string; // Keep for type consistency, might be empty
+  email: string;
   phoneNumber: string;
   referredBy?: string;
+  walletAddress?: string;
 };
 
 type Referral = {
@@ -48,22 +50,12 @@ type AppState = {
   isLoggedIn: boolean;
   isLoading: boolean;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
-  sendOtp: (phoneNumber: string, verifier: RecaptchaVerifier) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
-  verifyOtp: (otpCode: string) => Promise<{success: boolean, errorMessage?: string, errorTitle?: string}>;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
-  purchasePlan: (plan: UserTier) => void;
+  loginWithWallet: (publicKey: PublicKey, signMessage: MessageSignerWalletAdapterProps['signMessage']) => Promise<void>;
 };
 
 const AppContext = createContext<AppState | undefined>(undefined);
-
-// Extend window type for reCAPTCHA
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier;
-    confirmationResult?: ConfirmationResult;
-  }
-}
 
 function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -84,7 +76,6 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     const refCodeFromUrl = searchParams.get('ref');
     if (refCodeFromUrl) {
       try {
-        // Use sessionStorage to persist across reloads within the same tab/session
         sessionStorage.setItem('referralCode', refCodeFromUrl);
       } catch (error) {
         console.error("Could not write to sessionStorage:", error);
@@ -96,43 +87,38 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     try {
       const storedRefCode = sessionStorage.getItem('referralCode');
       if (!storedRefCode) return;
-
-      const functions = getFunctions();
+  
       const processFunction = httpsCallable(functions, 'referralProcess');
-      
       await processFunction({ referralCode: storedRefCode });
       
-      // Clear the code after processing to prevent reuse
       sessionStorage.removeItem('referralCode');
       
       toast({
         title: "Referral Applied!",
         description: "You've received a bonus for joining via a referral link!",
       });
-
+  
     } catch (error: any) {
-      // Don't bother the user with errors here, just log them.
-      // It might be an invalid code or they already have a referrer.
       console.error("Failed to process stored referral code:", error.message);
-      // Still remove the key to prevent retries
       sessionStorage.removeItem('referralCode');
     }
   }, [toast]);
-
 
   const getOrCreateUserDocument = useCallback(async (fbUser: FirebaseUser) => {
     const userDocRef = doc(db, 'users', fbUser.uid);
     let userDoc = await getDoc(userDocRef);
     let isNewUser = false;
-
+  
     if (!userDoc.exists()) {
       isNewUser = true;
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
+      
       const newUser = {
-        displayName: fbUser.phoneNumber, // Use phone number as initial name
-        email: fbUser.email || '', // Will be null for phone auth
-        phoneNumber: fbUser.phoneNumber,
-        providers: { phone: true },
+        displayName: `User ${fbUser.uid.slice(0, 5)}`,
+        name: `User ${fbUser.uid.slice(0, 5)}`,
+        walletAddress: fbUser.uid, // For wallet login, UID is the public key
+        email: fbUser.email || '',
+        phoneNumber: fbUser.phoneNumber || '',
         balance: 0,
         plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
         claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
@@ -142,56 +128,82 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         updatedAt: Timestamp.now(),
       };
       await setDoc(userDocRef, newUser);
-      userDoc = await getDoc(userDocRef); // Re-fetch the doc
+      userDoc = await getDoc(userDocRef);
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
-    // If it's a new user, check for a referral code
     if (isNewUser) {
       await processStoredReferral();
     }
-
+  
     return userDoc;
   }, [processStoredReferral]);
 
   const syncUserData = useCallback((fbUser: FirebaseUser | null) => {
-    if (fbUser) {
-      const unsubscribe = onSnapshot(doc(db, "users", fbUser.uid), (doc) => {
-        if (doc.exists()) {
-          const userData = doc.data();
-          const appUser: User = {
-            uid: fbUser.uid,
-            name: userData.displayName || fbUser.phoneNumber || 'User',
-            username: (userData.displayName || fbUser.phoneNumber || 'user').replace(/\s+/g, '').toLowerCase(),
-            avatar: fbUser.photoURL || '',
-            email: userData.email || fbUser.email || '',
-            phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
-            referredBy: userData.referredBy,
-          };
-          setUser(appUser);
-          setBalance(userData.balance || 0);
-          setUserTier(userData.plan?.id || 'Free');
-          setLastClaimTimestamp(userData.claimStats?.lastClaimAt?.toMillis() || null);
-          setReferralCode(userData.referralCode || '');
-        }
-      });
-      return unsubscribe;
-    } else {
-      // Clear all state on logout
+    if (!fbUser) {
       setUser(null);
-      setFirebaseUser(null);
       setBalance(0);
       setReferralCode('');
       setReferrals([]);
       setUserTier('Free');
       setLastClaimTimestamp(null);
-      setIsLoggedIn(false);
+      return null;
     }
+
+    const userDocRef = doc(db, 'users', fbUser.uid);
+    return onSnapshot(userDocRef, (doc) => {
+      if (doc.exists()) {
+        const userData = doc.data();
+        
+        setUser({
+          uid: fbUser.uid,
+          name: userData.name || fbUser.displayName || `User ${fbUser.uid.slice(0,5)}`,
+          username: userData.username || '',
+          avatar: userData.avatar || fbUser.photoURL || PlaceHolderImages[0]?.imageUrl || '/default-avatar.png',
+          email: userData.email || fbUser.email || '',
+          phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
+          referredBy: userData.referredBy,
+          walletAddress: userData.walletAddress || fbUser.uid,
+        });
+        setBalance(userData.balance || 0);
+        setUserTier(userData.plan?.id || 'Free');
+        setLastClaimTimestamp(userData.claimStats?.lastClaimAt?.toMillis() || null);
+        setReferralCode(userData.referralCode || '');
+        setReferrals(userData.referrals || []);
+      }
+    });
   }, []);
+  
+  const loginWithWallet = useCallback(async (publicKey: PublicKey, signMessage: MessageSignerWalletAdapterProps['signMessage']) => {
+    const createChallenge = httpsCallable(functions, 'createAuthChallenge');
+    const verifySignature = httpsCallable(functions, 'verifyAuthSignature');
+
+    // 1. Get challenge message from backend
+    const challengeResult = await createChallenge({ address: publicKey.toBase58() });
+    const { message } = challengeResult.data as { message: string };
+    
+    // 2. Sign the message
+    const encodedMessage = new TextEncoder().encode(message);
+    const signature = await signMessage(encodedMessage);
+
+    // 3. Verify signature and get custom token
+    const verifyResult = await verifySignature({
+        address: publicKey.toBase58(),
+        signature: Array.from(signature), // Serialize signature
+    });
+    const { token } = verifyResult.data as { token: string };
+
+    // 4. Sign in with custom token
+    await signInWithCustomToken(auth, token);
+    
+  }, [functions]);
+
 
   useEffect(() => {
     setIsLoading(true);
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
+        // For wallet login, the UID from custom token IS the public key.
         await getOrCreateUserDocument(fbUser);
         setFirebaseUser(fbUser);
         setIsLoggedIn(true);
@@ -211,53 +223,12 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       if (unsubscribeSync) unsubscribeSync();
     };
   }, [firebaseUser, syncUserData]);
-
-  const sendOtp = async (phoneNumber: string, verifier: RecaptchaVerifier): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
-    try {
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
-        window.confirmationResult = confirmationResult;
-        return { success: true };
-    } catch (error: any) {
-        console.error("Error sending OTP:", error);
-         // Reset reCAPTCHA verifier on certain errors
-        if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.render().then((widgetId) => {
-                // @ts-ignore
-                if(typeof grecaptcha !== 'undefined') {
-                    grecaptcha.reset(widgetId);
-                }
-            });
-        }
-        return {
-            success: false,
-            errorTitle: 'Failed to Send Code',
-            errorMessage: error.message || 'Could not send verification code. Please try again.'
-        }
-    }
-  }
-
-  const verifyOtp = async (otpCode: string): Promise<{success: boolean, errorMessage?: string, errorTitle?: string}> => {
-    try {
-        if (window.confirmationResult) {
-            await window.confirmationResult.confirm(otpCode);
-            // onAuthStateChanged will handle login state update
-            return { success: true };
-        }
-        throw new Error("Confirmation result not found. Please request a new code.");
-    } catch (error: any) {
-        return {
-            success: false,
-            errorTitle: 'Invalid Code',
-            errorMessage: error.message || 'The code you entered is incorrect. Please try again.'
-        }
-    }
-  }
   
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
       await signOut(auth);
-      await disconnect(); // Disconnect wallet if connected
+      await disconnect();
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -265,7 +236,6 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         description: error.message,
       });
     } finally {
-      // The onAuthStateChanged listener will handle state cleanup
       setIsLoading(false);
     }
   }, [disconnect, toast]);
@@ -275,35 +245,25 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to claim tokens.' };
     }
     try {
-      const functions = getFunctions();
       const claimFunction = httpsCallable(functions, 'claim');
-      
       const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
       
       const result = await claimFunction({ idempotencyKey });
       const data = result.data as any;
 
       if (data.success) {
-        // Data will refresh via onSnapshot, but we can show a toast immediately
         toast({ title: 'Success!', description: data.message });
         return { success: true, message: data.message };
       } else {
         toast({ variant: 'destructive', title: 'Claim Failed', description: data.message });
         return { success: false, message: data.message };
       }
-    } catch (e: any) {
-      console.error("Claim error:", e);
-      toast({ variant: 'destructive', title: 'Claim Error', description: e.message });
-      return { success: false, message: e?.message || 'An unknown error occurred.' };
+    } catch (error: any) {
+      const errorMessage = error?.message || 'An unexpected error occurred';
+      toast({ variant: 'destructive', title: 'Claim Failed', description: errorMessage });
+      return { success: false, message: errorMessage };
     }
   }, [firebaseUser, toast]);
-
-  const purchasePlan = useCallback(async (plan: UserTier) => {
-    if (!firebaseUser) return;
-    const userDocRef = doc(db, 'users', firebaseUser.uid);
-    await updateDoc(userDocRef, { "plan.id": plan, "plan.upgradedAt": Timestamp.now() });
-    // State will update via onSnapshot
-  }, [firebaseUser]);
 
   const value = { 
     user, 
@@ -316,11 +276,9 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     isLoggedIn, 
     isLoading, 
     setIsLoggedIn,
-    sendOtp,
-    verifyOtp,
     logout, 
-    claimTokens, 
-    purchasePlan 
+    claimTokens,
+    loginWithWallet
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
@@ -333,7 +291,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     </React.Suspense>
   )
 }
-
 
 export function useAppContext() {
   const context = useContext(AppContext);

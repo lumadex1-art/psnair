@@ -30,24 +30,24 @@ export const SOLANA_CONFIG = {
  * Plan Pricing Configuration (Public)
  */
 export const PLAN_CONFIG = {
-  // Plan prices in SOL (public information)
+  // Plan prices in SOL (public information) - Synced with backend
   PRICES: {
     Free: 0,
-    Starter : 0.0183486,
+    Starter: 0.0183486,    // ✅ TAMBAHKAN: Sesuai backend
     Silver: 0.0367,
     Gold: 0.0734,
     Platinum: 0.2064, 
     Diamond: 0.4128,
   },
   
-  // Plan features (public)
+  // Plan features (public) - Synced with backend plans.ts
   FEATURES: {
     Free: {
       maxDailyClaims: 1,
       rewardPerClaim: 1,
       features: ['1 EPSN per day', 'Basic Support'],
     },
-    Starter: {
+    Starter: {                // ✅ TAMBAHKAN: Sesuai backend
       maxDailyClaims: 1,
       rewardPerClaim: 5,
       features: ['5 EPSN per day', 'Priority Support'],

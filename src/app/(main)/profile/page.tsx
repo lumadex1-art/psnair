@@ -4,6 +4,7 @@ import { useAppContext } from '@/contexts/AppContext';
 import { UserAvatar } from '@/components/UserAvatar';
 import { BalanceStatus } from '@/components/BalanceStatus';
 import { ReferralCode } from '@/components/ReferralCode';
+import { ReferralHistory, ReferralRewardTracker } from '@/components';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LogOut, Coins, Star, Repeat, Copy, Users, Map, Phone } from 'lucide-react';
@@ -14,11 +15,41 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { PLAN_CONFIG } from '@/lib/config';
+import { useState, useEffect } from 'react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '@/lib/firebase';
 
 export default function ProfilePage() {
   const { user, balance, userTier, logout, referralCode, referrals } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
+  const [referralStats, setReferralStats] = useState<any>(null);
+  const [monthlyStats, setMonthlyStats] = useState({ thisMonth: 0, lastMonth: 0 });
+
+  useEffect(() => {
+    if (user) {
+      fetchReferralStats();
+    }
+  }, [user]);
+
+  const fetchReferralStats = async () => {
+    try {
+      const getReferralHistory = httpsCallable(functions, 'referralHistory');
+      const result = await getReferralHistory();
+      const data = result.data as any;
+      
+      if (data.success) {
+        const totalEarned = data.history.reduce((sum: number, item: any) => sum + item.reward.amount, 0);
+        setReferralStats({
+          totalEarned,
+          totalReferred: data.total,
+        });
+        setMonthlyStats(data.monthlyStats);
+      }
+    } catch (error) {
+      console.error('Error fetching referral stats:', error);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -198,6 +229,19 @@ export default function ProfilePage() {
 
         {/* Referral Section */}
         <ReferralCode />
+
+        {/* Referral Reward Tracker */}
+        {referralStats && (
+          <ReferralRewardTracker stats={{
+            totalEarned: referralStats.totalEarned,
+            thisMonth: monthlyStats.thisMonth,
+            lastMonth: monthlyStats.lastMonth,
+            totalReferred: referralStats.totalReferred,
+          }} />
+        )}
+
+        {/* Referral History */}
+        <ReferralHistory />
 
         {/* Logout Button */}
         <Card className="border border-red-200/50 bg-gradient-to-br from-red-50/50 to-red-100/30 dark:from-red-900/20 dark:to-red-800/10 backdrop-blur-xl">
