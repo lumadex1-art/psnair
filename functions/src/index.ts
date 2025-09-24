@@ -28,11 +28,14 @@ import {
   adminVerifyPayment, 
   adminRefundPayment, 
   adminGetAnalytics, 
-  adminGetPendingPayments,
+  adminGetPendingPayments
+} from './admin'; 
+
+import { 
   adminApprovePaymentHttp,
   adminGetPendingPaymentsHttp,
   adminGetPaymentsHttp
-} from './admin-http'; // Menggunakan admin-http
+} from './admin-http';
 
 import { 
   corsCreateSolanaIntent, 
@@ -44,9 +47,9 @@ import {
 // ========================================================================================
 
 // FUNGSI AUTH (HTTP dan Callable)
+export const verifyemailotp = verifyUserEmailOtp;
+export const resendemailotp = resendUserEmailOtp;
 export { verifyAuthToken, createLoginLink };
-export const verifyemailotp = onCall(verifyUserEmailOtp);
-export const resendemailotp = onCall(resendUserEmailOtp);
 export const onusercreate = onUserCreateAuth(onUserCreate);
 
 
