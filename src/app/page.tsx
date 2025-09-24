@@ -21,6 +21,7 @@ export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -36,7 +37,7 @@ export default function LoginPage() {
     }
   }, [isLoggedIn, router, user]);
 
-  const handleEmailPasswordLogin = useCallback(async () => {
+  const handleAuthAction = useCallback(async () => {
     if (!email || !password) {
       toast({
         variant: 'destructive',
@@ -47,40 +48,36 @@ export default function LoginPage() {
     }
     setIsProcessing(true);
     try {
-      // Try to sign in first
-      await signInWithEmailAndPassword(auth, email, password);
-      toast({
-        title: 'Sign In Successful!',
-        description: 'Welcome back to EpsilonDrop.',
-      });
-    } catch (signInError: any) {
-      if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
-        try {
-          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-          toast({
-            title: 'Account Created!',
-            description: 'Please check your email for a verification code.',
-          });
-          // The onUserCreate trigger will handle OTP generation.
-          // The useEffect will handle redirection.
-        } catch (signUpError: any) {
-          toast({
-            variant: 'destructive',
-            title: 'Sign Up Failed',
-            description: signUpError.message || 'An unknown error occurred during sign up.',
-          });
-        }
-      } else {
+      if (mode === 'signin') {
+        await signInWithEmailAndPassword(auth, email, password);
         toast({
-          variant: 'destructive',
-          title: 'Sign In Failed',
-          description: signInError.message || 'An unknown error occurred during sign in.',
+          title: 'Sign In Successful!',
+          description: 'Welcome back to EpsilonDrop.',
+        });
+      } else { // mode === 'signup'
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast({
+          title: 'Account Created!',
+          description: 'Please check your Firebase logs for the verification OTP.',
         });
       }
+    } catch (error: any) {
+        const title = mode === 'signin' ? 'Sign In Failed' : 'Sign Up Failed';
+        let description = error.message || 'An unknown error occurred.';
+        if (error.code === 'auth/email-already-in-use' && mode === 'signup') {
+            description = 'This email is already in use. Please sign in instead.';
+        } else if ((error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') && mode === 'signin') {
+            description = 'Invalid credentials. Please check your email and password or sign up.';
+        }
+      toast({
+        variant: 'destructive',
+        title,
+        description,
+      });
     } finally {
       setIsProcessing(false);
     }
-  }, [email, password, toast]);
+  }, [email, password, mode, toast]);
   
   const handlePasswordReset = async () => {
     if (!email) {
@@ -147,10 +144,10 @@ export default function LoginPage() {
             <CardHeader className="pb-4">
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-semibold">
-                  Join the Airdrop
+                  {mode === 'signin' ? 'Welcome Back!' : 'Join the Airdrop'}
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Sign in or create an account with your email
+                  {mode === 'signin' ? 'Sign in to your account' : 'Create an account to start claiming'}
                 </p>
               </div>
             </CardHeader>
@@ -189,7 +186,7 @@ export default function LoginPage() {
               </div>
               
               <Button 
-                onClick={handleEmailPasswordLogin} 
+                onClick={handleAuthAction} 
                 disabled={isProcessing || !email || !password} 
                 className="w-full h-12 text-base font-bold"
               >
@@ -199,12 +196,15 @@ export default function LoginPage() {
                     Processing...
                   </>
                 ) : (
-                  'Sign In / Sign Up'
+                  mode === 'signin' ? 'Sign In' : 'Create Account'
                 )}
               </Button>
-
-              <div className="text-center">
-                 <Button variant="link" size="sm" onClick={handlePasswordReset} className="text-xs text-muted-foreground">
+              
+              <div className="flex justify-between items-center text-xs">
+                 <Button variant="link" size="sm" onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')} className="text-muted-foreground">
+                  {mode === 'signin' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
+                </Button>
+                 <Button variant="link" size="sm" onClick={handlePasswordReset} className="text-muted-foreground">
                   Forgot Password?
                 </Button>
               </div>
