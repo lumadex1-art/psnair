@@ -1,8 +1,8 @@
 import { onRequest, onCall, HttpsError } from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
-import { PlanUtils } from "./config/plans";
 import {generateUniqueReferralCode} from "./utils";
-import * as logger from "firebase-functions/logger"; // ✅ DIPERBAIKI: Mengimpor logger v2 secara spesifik
+import * as logger from "firebase-functions/logger";
+
 const db = admin.firestore();
 
 // CORS headers with development support (manual, consistent with cors-solana.ts)
@@ -109,7 +109,7 @@ function generateOtp(): string {
         const otp = generateOtp();
         await storeOtp(user.uid, otp);
         // Log for development/testing purposes as we can't send emails
-        logger.log(`Generated OTP for ${user.email} (UID: ${user.uid}): ${otp}`); // ✅ DIPERBAIKI
+        logger.log(`Generated OTP for ${user.email} (UID: ${user.uid}): ${otp}`);
       }
     }
   };
@@ -158,7 +158,7 @@ function generateOtp(): string {
   
       return {success: true, message: "Email successfully verified!"};
     } catch (error) {
-      logger.error('Error verifying OTP:', error); // ✅ DIPERBAIKI
+      logger.error('Error verifying OTP:', error);
       if (error instanceof HttpsError) {
         throw error;
       }
@@ -185,11 +185,11 @@ function generateOtp(): string {
   
       const otp = generateOtp();
       await storeOtp(uid, otp);
-      logger.log(`Resent OTP for ${user.email} (UID: ${uid}): ${otp}`); // ✅ DIPERBAIKI
+      logger.log(`Resent OTP for ${user.email} (UID: ${uid}): ${otp}`);
   
       return {success: true, message: "A new OTP has been generated."};
     } catch (error) {
-      logger.error('Error resending OTP:', error); // ✅ DIPERBAIKI
+      logger.error('Error resending OTP:', error);
       if (error instanceof HttpsError) {
         throw error;
       }
@@ -245,7 +245,7 @@ export const verifyAuthToken = onRequest(async (req, res) => {
         res.status(200).json({ success: true, firebaseToken });
 
     } catch (error) {
-        logger.error("Error verifying auth token:", error); // ✅ DIPERBAIKI
+        logger.error("Error verifying auth token:", error);
         res.status(500).json({ success: false, error: "Internal server error" });
     }
 });
@@ -289,125 +289,7 @@ export const createLoginLink = onRequest(async (req, res) => {
         res.status(200).json({ success: true, link });
 
     } catch (error) {
-        logger.error("Error creating login link:", error); // ✅ DIPERBAIKI
+        logger.error("Error creating login link:", error);
         res.status(500).json({ error: "Could not create login link" });
-    }
-});
-
-// --- PAYMENT LINK CREATION (Callable, requires auth) ---
-export const createPaymentLink = onRequest(async (req, res) => {
-    setCorsHeaders(res as any, req as any);
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
-    }
-
-    if (req.method !== 'POST') {
-        res.status(405).send('Method Not Allowed');
-        return;
-    }
-
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        res.status(401).json({ error: 'Unauthorized' });
-        return;
-    }
-
-    try {
-        const idToken = authHeader.split('Bearer ')[1];
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const uid = decodedToken.uid;
-
-        const { planId } = req.body;
-        if (!planId || !PlanUtils.isValidPlan(planId)) {
-            res.status(400).json({ error: 'Invalid plan ID' });
-            return;
-        }
-
-        const db = admin.firestore();
-        // Use Firestore's auto-ID for a secure, unique token
-        const paymentIntentRef = db.collection('paymentIntents').doc();
-        const paymentToken = paymentIntentRef.id;
-
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 1); // Link valid for 1 hour
-
-        await paymentIntentRef.set({
-            uid,
-            planId,
-            status: 'pending',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
-        });
-        
-        const link = `https://psnchainaidrop.digital/pay/${paymentToken}`;
-        res.status(200).json({ success: true, link, token: paymentToken });
-
-    } catch (error) {
-        logger.error("Error creating payment link:", error); // ✅ DIPERBAIKI
-        res.status(500).json({ error: 'Could not create payment link' });
-    }
-});
-
-// --- GET PAYMENT LINK DETAILS (Public, no auth needed) ---
-export const getPaymentLinkDetails = onRequest(async (req, res) => {
-    setCorsHeaders(res as any, req as any);
-    if (req.method === 'OPTIONS') {
-        res.status(204).send('');
-        return;
-    }
-
-    if (req.method !== 'POST') {
-        res.status(405).send('Method Not Allowed');
-        return;
-    }
-    
-    const { token } = req.body;
-    if (!token) {
-        res.status(400).json({ error: "Payment token is required" });
-        return;
-    }
-    
-    try {
-        const db = admin.firestore();
-        const intentRef = db.collection('paymentIntents').doc(token);
-        const intentDoc = await intentRef.get();
-
-        if (!intentDoc.exists) {
-            res.status(404).json({ error: "Payment link not found or expired" });
-            return;
-        }
-
-        const intentData = intentDoc.data()!;
-        const now = admin.firestore.Timestamp.now();
-        if (intentData.expiresAt < now) {
-            res.status(404).json({ error: "Payment link has expired" });
-            return;
-        }
-        if (intentData.status !== 'pending') {
-             res.status(400).json({ error: `Payment link already processed (status: ${intentData.status})` });
-            return;
-        }
-
-        const userDoc = await db.collection('users').doc(intentData.uid).get();
-        const planDetails = PlanUtils.getPlanById(intentData.planId);
-
-        if (!userDoc.exists || !planDetails) {
-             res.status(404).json({ error: "Invalid user or plan details" });
-            return;
-        }
-        
-        res.status(200).json({
-            success: true,
-            uid: intentData.uid,
-            userName: userDoc.data()?.displayName || 'A user',
-            planId: intentData.planId,
-            planName: planDetails.name,
-            amountLamports: planDetails.priceInLamports,
-        });
-
-    } catch (error) {
-        logger.error("Error getting payment link details:", error); // ✅ DIPERBAIKI
-        res.status(500).json({ error: "Internal server error" });
     }
 });
