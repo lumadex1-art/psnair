@@ -1,3 +1,4 @@
+
 import * as admin from "firebase-admin";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {generateUniqueReferralCode} from "./utils";
@@ -140,3 +141,4 @@ export const resendEmailOtp = onCall(async (request) => {
 
   return {success: true, message: "A new OTP has been generated."};
 });
+
