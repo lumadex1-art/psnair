@@ -11,54 +11,97 @@ import { useToast } from '@/hooks/use-toast';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { useWallet } from '@solana/wallet-adapter-react';
+import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
-  const { isLoggedIn, isLoading: isAuthLoading, loginWithWallet } = useAppContext();
+  const { isLoggedIn, isLoading: isAuthLoading } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
-  const { connected, publicKey, signMessage } = useWallet();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    // If user is logged in, redirect to the claim page
     if (isLoggedIn) {
       router.replace('/claim');
     }
   }, [isLoggedIn, router]);
-  
-  const handleSignIn = useCallback(async () => {
-    if (!connected || !publicKey || !signMessage) {
+
+  const handleEmailPasswordLogin = useCallback(async () => {
+    if (!email || !password) {
       toast({
         variant: 'destructive',
-        title: 'Wallet Not Connected',
-        description: 'Please connect your wallet first.',
+        title: 'Input Error',
+        description: 'Please enter both email and password.',
       });
       return;
     }
-
     setIsProcessing(true);
     try {
-      await loginWithWallet(publicKey, signMessage);
+      // Try to sign in first
+      await signInWithEmailAndPassword(auth, email, password);
       toast({
         title: 'Sign In Successful!',
         description: 'Welcome back to EpsilonDrop.',
       });
-      // Redirect will be handled by the AppContext isLoggedIn state change
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Sign In Failed',
-        description: error.message || 'An unknown error occurred.',
-      });
+    } catch (signInError: any) {
+      // If user not found, try to create a new account
+      if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          toast({
+            title: 'Account Created!',
+            description: 'Welcome to EpsilonDrop. Your account has been created.',
+          });
+        } catch (signUpError: any) {
+          toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description: signUpError.message || 'An unknown error occurred during sign up.',
+          });
+        }
+      } else {
+        // Handle other sign-in errors
+        toast({
+          variant: 'destructive',
+          title: 'Sign In Failed',
+          description: signInError.message || 'An unknown error occurred during sign in.',
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
-  }, [connected, publicKey, signMessage, loginWithWallet, toast]);
+  }, [email, password, toast]);
+  
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        title: "Provide Email",
+        description: "Please enter your email address to reset password.",
+        variant: "destructive"
+      });
+      return;
+    }
 
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your inbox for a link to reset your password."
+      })
+    } catch (error: any) {
+       toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      })
+    }
+  };
 
   if (isAuthLoading || isLoggedIn) {
     return (
@@ -70,12 +113,10 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-background via-background to-primary/5 flex flex-col">
-      {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.1),transparent)] pointer-events-none" />
       
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-sm space-y-8">
-          {/* Header Section */}
           <div className="text-center space-y-6">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-full blur-xl" />
@@ -98,7 +139,6 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Login Card */}
           <Card className="border border-border/50 bg-card/80 backdrop-blur-xl shadow-2xl shadow-primary/5">
             <CardHeader className="pb-4">
               <div className="text-center space-y-2">
@@ -106,35 +146,68 @@ export default function LoginPage() {
                   Join the Airdrop
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Connect your wallet to sign in or create an account
+                  Sign in or create an account with your email
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex justify-center">
-                  <WalletMultiButton />
+              <div className="space-y-4">
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    type="email" 
+                    placeholder="Email" 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12"
+                    disabled={isProcessing}
+                  />
+                </div>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Input 
+                    type={showPassword ? 'text' : 'password'} 
+                    placeholder="Password" 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 h-12"
+                    disabled={isProcessing}
+                  />
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </Button>
+                </div>
               </div>
               
-              {connected && (
-                <Button 
-                  onClick={handleSignIn} 
-                  disabled={isProcessing} 
-                  className="w-full h-12 text-base font-bold"
-                >
-                   {isProcessing ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Verifying...
-                    </>
-                  ) : (
-                    'Sign In with Wallet'
-                  )}
+              <Button 
+                onClick={handleEmailPasswordLogin} 
+                disabled={isProcessing || !email || !password} 
+                className="w-full h-12 text-base font-bold"
+              >
+                 {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Sign In / Sign Up'
+                )}
+              </Button>
+
+              <div className="text-center">
+                 <Button variant="link" size="sm" onClick={handlePasswordReset} className="text-xs text-muted-foreground">
+                  Forgot Password?
                 </Button>
-              )}
+              </div>
+
             </CardContent>
           </Card>
         
-          {/* Footer */}
           <div className="text-center space-y-2 pt-6">
             <p className="text-xs text-muted-foreground">
               By signing in, you agree to our Terms of Service and Privacy Policy.

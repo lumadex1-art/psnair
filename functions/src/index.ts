@@ -32,8 +32,6 @@ admin.initializeApp();
 
 // Auth triggers
 export const onusercreate = functions.auth.user().onCreate(authFunctions.onUserCreate);
-export const createAuthChallenge = authFunctions.createAuthChallenge;
-export const verifyAuthSignature = authFunctions.verifyAuthSignature;
 
 // Solana Payment functions
 export const getpaymentlinkdetails = corsGetPaymentLinkDetails;

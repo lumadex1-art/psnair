@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { auth, db, functions } from '@/lib/firebase';
-import { User as FirebaseUser, onAuthStateChanged, signOut, signInWithCustomToken } from 'firebase/auth';
+import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PLAN_CONFIG } from '@/lib/config';
@@ -17,9 +17,6 @@ import { generateUniqueReferralCode } from '@/utils/referralCode';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable } from 'firebase/functions';
 import { useSearchParams } from 'next/navigation';
-import type { PublicKey } from '@solana/web3.js';
-import type { Signer, MessageSignerWalletAdapterProps } from '@solana/wallet-adapter-base';
-
 
 type User = {
   uid: string;
@@ -52,7 +49,6 @@ type AppState = {
   setIsLoggedIn: (isLoggedIn: boolean) => void;
   logout: () => Promise<void>;
   claimTokens: () => Promise<{success: boolean, message: string}>;
-  loginWithWallet: (publicKey: PublicKey, signMessage: MessageSignerWalletAdapterProps['signMessage']) => Promise<void>;
 };
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -114,9 +110,9 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
       
       const newUser = {
-        displayName: `User ${fbUser.uid.slice(0, 5)}`,
-        name: `User ${fbUser.uid.slice(0, 5)}`,
-        walletAddress: fbUser.uid, // For wallet login, UID is the public key
+        displayName: fbUser.displayName || fbUser.email || `User ${fbUser.uid.slice(0, 5)}`,
+        name: fbUser.displayName || fbUser.email || `User ${fbUser.uid.slice(0, 5)}`,
+        walletAddress: fbUser.providerData.some((p) => p.providerId === "phone") ? null : fbUser.uid,
         email: fbUser.email || '',
         phoneNumber: fbUser.phoneNumber || '',
         balance: 0,
@@ -163,7 +159,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
           email: userData.email || fbUser.email || '',
           phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
           referredBy: userData.referredBy,
-          walletAddress: userData.walletAddress || fbUser.uid,
+          walletAddress: userData.walletAddress || null,
         });
         setBalance(userData.balance || 0);
         setUserTier(userData.plan?.id || 'Free');
@@ -173,37 +169,11 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       }
     });
   }, []);
-  
-  const loginWithWallet = useCallback(async (publicKey: PublicKey, signMessage: MessageSignerWalletAdapterProps['signMessage']) => {
-    const createChallenge = httpsCallable(functions, 'createAuthChallenge');
-    const verifySignature = httpsCallable(functions, 'verifyAuthSignature');
-
-    // 1. Get challenge message from backend
-    const challengeResult = await createChallenge({ address: publicKey.toBase58() });
-    const { message } = challengeResult.data as { message: string };
-    
-    // 2. Sign the message
-    const encodedMessage = new TextEncoder().encode(message);
-    const signature = await signMessage(encodedMessage);
-
-    // 3. Verify signature and get custom token
-    const verifyResult = await verifySignature({
-        address: publicKey.toBase58(),
-        signature: Array.from(signature), // Serialize signature
-    });
-    const { token } = verifyResult.data as { token: string };
-
-    // 4. Sign in with custom token
-    await signInWithCustomToken(auth, token);
-    
-  }, [functions]);
-
 
   useEffect(() => {
     setIsLoading(true);
     const unsubscribeAuth = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        // For wallet login, the UID from custom token IS the public key.
         await getOrCreateUserDocument(fbUser);
         setFirebaseUser(fbUser);
         setIsLoggedIn(true);
@@ -278,7 +248,6 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     setIsLoggedIn,
     logout, 
     claimTokens,
-    loginWithWallet
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
