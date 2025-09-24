@@ -24,6 +24,7 @@ type User = {
   username: string;
   avatar: string;
   email: string;
+  emailVerified: boolean;
   phoneNumber: string;
   referredBy?: string;
   walletAddress?: string;
@@ -157,6 +158,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
           username: userData.username || '',
           avatar: userData.avatar || fbUser.photoURL || PlaceHolderImages[0]?.imageUrl || '/default-avatar.png',
           email: userData.email || fbUser.email || '',
+          emailVerified: fbUser.emailVerified,
           phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
           referredBy: userData.referredBy,
           walletAddress: userData.walletAddress || null,

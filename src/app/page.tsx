@@ -17,7 +17,7 @@ import { auth } from '@/lib/firebase';
 import { Input } from '@/components/ui/input';
 
 export default function LoginPage() {
-  const { isLoggedIn, isLoading: isAuthLoading } = useAppContext();
+  const { isLoggedIn, isLoading: isAuthLoading, user } = useAppContext();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -28,9 +28,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isLoggedIn) {
-      router.replace('/claim');
+      if (auth.currentUser && !auth.currentUser.emailVerified) {
+        router.replace('/auth/verify-otp');
+      } else {
+        router.replace('/claim');
+      }
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, router, user]);
 
   const handleEmailPasswordLogin = useCallback(async () => {
     if (!email || !password) {
@@ -50,14 +54,15 @@ export default function LoginPage() {
         description: 'Welcome back to EpsilonDrop.',
       });
     } catch (signInError: any) {
-      // If user not found, try to create a new account
       if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential') {
         try {
-          await createUserWithEmailAndPassword(auth, email, password);
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
           toast({
             title: 'Account Created!',
-            description: 'Welcome to EpsilonDrop. Your account has been created.',
+            description: 'Please check your email for a verification code.',
           });
+          // The onUserCreate trigger will handle OTP generation.
+          // The useEffect will handle redirection.
         } catch (signUpError: any) {
           toast({
             variant: 'destructive',
@@ -66,7 +71,6 @@ export default function LoginPage() {
           });
         }
       } else {
-        // Handle other sign-in errors
         toast({
           variant: 'destructive',
           title: 'Sign In Failed',
@@ -103,7 +107,7 @@ export default function LoginPage() {
     }
   };
 
-  if (isAuthLoading || isLoggedIn) {
+  if (isAuthLoading || (isLoggedIn && auth.currentUser?.emailVerified)) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
