@@ -1,7 +1,7 @@
 import * as admin from "firebase-admin";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {generateUniqueReferralCode} from "./utils";
-import * as functions from "firebase-functions";
+import * as logger from "firebase-functions/logger";
 
 const db = admin.firestore();
 
@@ -71,7 +71,7 @@ export const onUserCreate = async (user: admin.auth.UserRecord) => {
       const otp = generateOtp();
       await storeOtp(user.uid, otp);
       // Log for development/testing purposes as we can't send emails
-      functions.logger.log(`Generated OTP for ${user.email} (UID: ${user.uid}): ${otp}`);
+      logger.log(`Generated OTP for ${user.email} (UID: ${user.uid}): ${otp}`);
     }
   }
 };
@@ -136,7 +136,7 @@ export const resendEmailOtp = onCall(async (request) => {
 
   const otp = generateOtp();
   await storeOtp(uid, otp);
-  functions.logger.log(`Resent OTP for ${user.email} (UID: ${uid}): ${otp}`);
+  logger.log(`Resent OTP for ${user.email} (UID: ${uid}): ${otp}`);
 
   return {success: true, message: "A new OTP has been generated."};
 });
