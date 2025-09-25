@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -22,18 +22,7 @@ export default function OtpVerification({ email, onVerificationSuccess, onBack }
   const [otp, setOtp] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
-  const [countdown, setCountdown] = useState(0);
   const { toast } = useToast();
-
-  useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (countdown > 0) {
-      timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-    }
-    return () => clearTimeout(timer);
-  }, [countdown]);
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +61,7 @@ export default function OtpVerification({ email, onVerificationSuccess, onBack }
   };
 
   const handleResendOtp = async () => {
-    if (isResending || countdown > 0) return;
+    if (isResending) return;
 
     setIsResending(true);
     try {
@@ -83,7 +72,6 @@ export default function OtpVerification({ email, onVerificationSuccess, onBack }
         title: 'OTP Sent',
         description: 'A new OTP code has been sent to your email.',
       });
-      setCountdown(120); // Start 120-second (2 minute) cooldown
 
     } catch (error: any) {
       toast({
@@ -155,18 +143,13 @@ export default function OtpVerification({ email, onVerificationSuccess, onBack }
             type="button"
             variant="outline"
             onClick={handleResendOtp}
-            disabled={isResending || countdown > 0}
+            disabled={isResending}
             className="w-full"
           >
             {isResending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Sending...
-              </>
-            ) : countdown > 0 ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Resend in {countdown}s
               </>
             ) : (
               <>
