@@ -12,8 +12,8 @@ import '@solana/wallet-adapter-react-ui/styles.css';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const network = WalletAdapterNetwork.Mainnet;
-  // Use environment variable for RPC endpoint for security
-  const endpoint = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.mainnet-beta.solana.com';
+  // Ganti endpoint RPC ke yang disediakan pengguna untuk mengatasi masalah 403 Forbidden
+  const endpoint = 'https://rpc-mainnet.solanatracker.io/?api_key=bb9aeffe-6d8f-4df1-a357-d0dfde36ee28';
   
   const wallets = useMemo(
     () => [

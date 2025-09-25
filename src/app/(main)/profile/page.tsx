@@ -19,14 +19,6 @@ import { useState, useEffect } from 'react';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '@/lib/firebase';
 
-const formatUserName = (name: string): string => {
-  if (typeof name !== 'string') return 'User';
-  if (name.includes('@')) {
-    return name.split('@')[0];
-  }
-  return name;
-};
-
 export default function ProfilePage() {
   const { user, balance, userTier, logout, referralCode, referrals } = useAppContext();
   const router = useRouter();
@@ -116,7 +108,7 @@ export default function ProfilePage() {
           {/* User Info */}
           <div className="text-center space-y-3">
             <h1 className="font-headline text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-              {formatUserName(user.name)}
+              {user.name}
             </h1>
             <p className="text-muted-foreground text-lg flex items-center justify-center gap-2">
               <Phone className="h-4 w-4" />

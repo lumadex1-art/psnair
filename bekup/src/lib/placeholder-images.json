@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "user-avatar-1",
+      "description": "Avatar for a user",
+      "imageUrl": "https://picsum.photos/seed/101/100/100",
+      "imageHint": "person"
+    },
+    {
+      "id": "user-avatar-2",
+      "description": "Avatar for another user",
+      "imageUrl": "https://picsum.photos/seed/102/100/100",
+      "imageHint": "person"
+    },
+    {
+      "id": "user-avatar-3",
+      "description": "Avatar for a third user",
+      "imageUrl": "https://picsum.photos/seed/103/100/100",
+      "imageHint": "person"
+    },
+    {
+      "id": "user-avatar-4",
+      "description": "Avatar for a fourth user",
+      "imageUrl": "https://picsum.photos/seed/104/100/100",
+      "imageHint": "person"
+    },
+    {
+      "id": "user-avatar-5",
+      "description": "Avatar for a fifth user",
+      "imageUrl": "https://picsum.photos/seed/105/100/100",
+      "imageHint": "person"
+    }
+  ]
+}

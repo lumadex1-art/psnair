@@ -25,8 +25,8 @@ const baseNavItems = [
 
 const adminNavItem = { href: '/admin/payments', icon: Shield, label: 'Admin' };
 
-// Admin UID from environment variables for security
-const ADMIN_UID = process.env.NEXT_PUBLIC_ADMIN_UID;
+// UID Admin - Ganti dengan UID admin Anda yang sebenarnya
+const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
 
 export function BottomNav() {
   const pathname = usePathname();
