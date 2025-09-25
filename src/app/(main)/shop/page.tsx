@@ -67,7 +67,6 @@ interface PurchaseConfirmationDetails {
     plan: Tier;
     priceSol: number;
     priceUsd: number;
-    paymentMethod: 'solana' | 'bank';
 }
 
 
@@ -118,7 +117,7 @@ export default function ShopPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const openConfirmationDialog = (plan: Tier, paymentMethod: 'solana' | 'bank') => {
+  const openConfirmationDialog = (plan: Tier) => {
     const pricing = planPricing[plan];
     if (!pricing) {
         toast({ variant: 'destructive', title: 'Error', description: 'Plan pricing not available.' });
@@ -128,14 +127,13 @@ export default function ShopPage() {
         plan,
         priceSol: PLAN_CONFIG.PRICES[plan],
         priceUsd: pricing.usd,
-        paymentMethod,
     });
     setConfirmationInput('');
     setIsConfirmationOpen(true);
 };
 
 
-  const handlePurchase = async (plan: Tier) => {
+  const handleSolanaPurchase = async (plan: Tier) => {
     if (!connected || !publicKey) {
       toast({ variant: 'destructive', title: 'Wallet not connected' });
       return;
@@ -173,7 +171,10 @@ export default function ShopPage() {
       const confirmData = await confirmResponse.json();
       if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
       
-      toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan. Please await admin approval.` });
+      toast({ 
+        title: 'Purchase Successful!', 
+        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
+      });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     } finally {
@@ -188,17 +189,11 @@ export default function ShopPage() {
       planPrice: idrPrices[plan]
     });
     setIsBankTransferOpen(true);
-    setIsConfirmationOpen(false); // Close confirmation dialog
   };
 
   const handleConfirmAndProceed = () => {
     if (!confirmationDetails) return;
-
-    if (confirmationDetails.paymentMethod === 'solana') {
-        handlePurchase(confirmationDetails.plan);
-    } else {
-        handleBankTransfer(confirmationDetails.plan);
-    }
+    handleSolanaPurchase(confirmationDetails.plan);
   };
 
   const handleCopy = (text: string, type: string) => {
@@ -249,8 +244,7 @@ export default function ShopPage() {
               const isProcessing = purchasingPlan === plan.name;
 
               return (
-                <div key={plan.name}>
-                <Card className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
+                <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -273,7 +267,7 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                       <Button onClick={() => openConfirmationDialog(plan.name, 'solana')} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                       <Button onClick={() => openConfirmationDialog(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isProcessing && purchasingPlan === plan.name ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -289,14 +283,13 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => openConfirmationDialog(plan.name, 'bank')} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => handleBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
                         <Landmark className="mr-2 h-4 w-4" />
                         Bank Transfer
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-                </div>
               );
             })}
           </div>
@@ -483,5 +476,3 @@ export default function ShopPage() {
     </>
   );
 }
-
-    
