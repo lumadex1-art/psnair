@@ -39,7 +39,7 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
     name: name as Tier,
     description: data.features.join(', '),
     features: data.features,
-    isPopular: name === 'Diamond', 
+    isPopular: false, 
   }));
 
 const idrPrices: Record<Tier, string> = {
@@ -199,7 +199,7 @@ export default function ShopPage() {
         title: 'Payment Verified!', 
         description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
       });
-    } catch (err: any) => {
+    } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     } finally {
       setPurchasingPlan(null);
@@ -460,5 +460,7 @@ export default function ShopPage() {
     
 
 
+
+    
 
     
