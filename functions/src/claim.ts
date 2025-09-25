@@ -1,3 +1,4 @@
+
 import {HttpsError, CallableRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import { PlanUtils } from "./config/plans";
@@ -141,7 +142,7 @@ export const claimReward = async (request: CallableRequest<ClaimData>) => {
 
     return result;
   } catch (error: any) {
-    console.error("Claim error:", error);
+    
     if (error instanceof HttpsError) {
       throw error;
     }

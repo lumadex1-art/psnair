@@ -1,3 +1,4 @@
+
 /**
  * Secure Configuration for Firebase Functions
  * 
@@ -135,13 +136,13 @@ export const validateAdminConfig = (): boolean => {
   }
   
   if (errors.length > 0) {
-    console.warn('⚠️ Admin configuration warnings:');
+    
     errors.forEach(error => console.warn(`  - ${error}`));
     console.warn('⚠️ Some admin features may not work properly');
     return false; // Return false instead of throwing error
   }
   
-  console.log('✅ Admin configuration validated');
+  
   return true;
 };
 
@@ -149,13 +150,13 @@ export const validateAdminConfig = (): boolean => {
  * Log configuration status (without sensitive values)
  */
 export const logConfigStatus = (): void => {
-  console.log('🔧 Configuration Status:');
-  console.log(`  - Admin UIDs configured: ${ADMIN_CONFIG.ADMIN_UIDS.length}`);
-  console.log(`  - Super admin configured: ${!!ADMIN_CONFIG.SUPER_ADMIN_UID}`);
-  console.log(`  - JWT secret configured: ${!!SECURITY_CONFIG.JWT_SECRET}`);
-  console.log(`  - Encryption key configured: ${!!SECURITY_CONFIG.ENCRYPTION_KEY}`);
-  console.log(`  - Telegram bot configured: ${!!TELEGRAM_CONFIG.BOT_TOKEN}`);
-  console.log(`  - Environment: ${process.env.NODE_ENV || 'development'}`);
+  
+  
+  
+  
+  
+  
+  
 };
 
 // Auto-validate configuration (DISABLED FOR DEPLOYMENT)
@@ -166,4 +167,4 @@ export const logConfigStatus = (): void => {
 //   console.warn('🚨 Functions will deploy but admin features may be limited');
 // }
 
-console.log('🔧 Secure config loaded - validation disabled for deployment');
+

@@ -1,3 +1,4 @@
+
 import {HttpsError, CallableRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 import * as functions from "firebase-functions";
@@ -9,9 +10,6 @@ const ADMIN_UIDS = (config.admin?.uids || process.env.ADMIN_UIDS || "").split(',
 const SUPER_ADMIN_UID = config.admin?.super_uid || process.env.SUPER_ADMIN_UID || "";
 
 const isAdmin = (uid: string): boolean => {
-  console.log('Checking admin UID:', uid);
-  console.log('Valid admin UIDs:', ADMIN_UIDS);
-  console.log('Super admin UID:', SUPER_ADMIN_UID);
   return ADMIN_UIDS.includes(uid) || uid === SUPER_ADMIN_UID;
 };
 
@@ -140,7 +138,7 @@ export const adminGetPayments = async (request: CallableRequest<GetPaymentsData>
       stats,
     };
   } catch (error: any) {
-    console.error("Admin get payments error:", error);
+    
     throw new HttpsError("internal", "Failed to get payment data");
   }
 };
@@ -210,7 +208,7 @@ export const adminVerifyPayment = async (request: CallableRequest<VerifyPaymentD
       message: "Payment manually verified and plan updated",
     };
   } catch (error: any) {
-    console.error("Admin verify payment error:", error);
+    
     if (error instanceof HttpsError) {
       throw error;
     }
@@ -296,7 +294,7 @@ export const adminRefundPayment = async (request: CallableRequest<RefundPaymentD
       message: "Refund processed and user plan downgraded",
     };
   } catch (error: any) {
-    console.error("Admin refund payment error:", error);
+    
     if (error instanceof HttpsError) {
       throw error;
     }
@@ -373,7 +371,7 @@ export const adminGetAnalytics = async (request: CallableRequest<{}>) => {
       },
     };
   } catch (error: any) {
-    console.error("Admin get analytics error:", error);
+    
     throw new HttpsError("internal", "Failed to get analytics data");
   }
 };
@@ -473,7 +471,7 @@ export const adminApprovePayment = async (request: CallableRequest<ApprovePaymen
       userId: transactionData.uid,
     };
   } catch (error: any) {
-    console.error("Admin approve payment error:", error);
+    
     if (error instanceof HttpsError) {
       throw error;
     }
@@ -534,7 +532,7 @@ export const adminGetPendingPayments = async (request: CallableRequest<{}>) => {
       count: pendingPayments.length,
     };
   } catch (error: any) {
-    console.error("Admin get pending payments error:", error);
+    
     throw new HttpsError("internal", "Failed to get pending payments");
   }
 };

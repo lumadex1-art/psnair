@@ -1,3 +1,4 @@
+
 import * as admin from "firebase-admin";
 import {createHash, createHmac} from "crypto";
 
@@ -50,7 +51,7 @@ export const verifyTelegramLogin = async (req: any, res: any) => {
     // Get bot token from environment
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     if (!botToken) {
-      console.error("Telegram bot token not configured");
+      
       res.status(500).json({error: "Server configuration error"});
       return;
     }
@@ -82,7 +83,7 @@ export const verifyTelegramLogin = async (req: any, res: any) => {
         res.json({success: true, linked: true, message: "Telegram account linked successfully"});
         return;
       } catch (error) {
-        console.error("Firebase token verification failed:", error);
+        
         // Continue to create new user
       }
     }
@@ -134,7 +135,7 @@ export const verifyTelegramLogin = async (req: any, res: any) => {
       }
     }
   } catch (error: any) {
-    console.error("Telegram verification error:", error);
+    
     res.status(500).json({error: "Internal server error"});
   }
 };

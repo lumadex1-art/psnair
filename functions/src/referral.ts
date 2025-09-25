@@ -1,3 +1,4 @@
+
 import {HttpsError, CallableRequest} from "firebase-functions/v2/https";
 import * as admin from "firebase-admin";
 
@@ -136,7 +137,7 @@ export const processReferral = async (request: CallableRequest<ProcessReferralDa
 
     return result;
   } catch (error: any) {
-    console.error("Referral processing error:", error);
+    
     
     if (error instanceof HttpsError) {
       throw error;
@@ -200,7 +201,7 @@ export const getReferralStats = async (request: CallableRequest<{}>) => {
       },
     };
   } catch (error: any) {
-    console.error("Get referral stats error:", error);
+    
     
     if (error instanceof HttpsError) {
       throw error;
@@ -279,7 +280,7 @@ export const validateReferralCode = async (request: CallableRequest<{referralCod
       },
     };
   } catch (error: any) {
-    console.error("Validate referral code error:", error);
+    
     throw new HttpsError("internal", "Failed to validate referral code");
   }
 };
@@ -356,8 +357,8 @@ export const getReferralHistory = async (request: CallableRequest<{}>) => {
         lastMonth: lastMonthEarnings,
       },
     };
-  } catch (error: any) {
-    console.error("Get referral history error:", error);
+  } catch (error: any) => {
+    
     throw new HttpsError("internal", "Failed to get referral history");
   }
 };

@@ -1,3 +1,4 @@
+
 import * as admin from "firebase-admin";
 import {Connection, PublicKey} from "@solana/web3.js";
 import { PlanUtils, VALID_PLAN_IDS } from "./config/plans";
@@ -106,7 +107,7 @@ export const corsCreateSolanaIntent = async (req: any, res: any) => {
       merchantWallet: MERCHANT_WALLET.toBase58(),
     });
   } catch (error: any) {
-    console.error("Create intent error:", error);
+    
     res.status(500).json({ error: 'Failed to create payment intent' });
   }
 };
@@ -189,7 +190,7 @@ export const corsConfirmSolanaPayment = async (req: any, res: any) => {
       status: "pending_approval"
     });
   } catch (error: any) {
-    console.error("Confirm payment error:", error);
+    
     res.status(500).json({ error: 'Payment confirmation failed' });
   }
 };

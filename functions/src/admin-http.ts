@@ -1,3 +1,4 @@
+
 import * as admin from "firebase-admin";
 import type { Request, Response } from "express";
 
@@ -98,7 +99,7 @@ export const adminGetPendingPaymentsHttp = async (req: Request, res: Response) =
       count: pendingPayments.length,
     });
   } catch (error: any) {
-    console.error("Admin get pending payments error:", error);
+    
     res.status(500).json({ error: 'Failed to get pending payments' });
   }
 };
@@ -187,7 +188,7 @@ export const adminApprovePaymentHttp = async (req: Request, res: Response) => {
       transactionId,
     });
   } catch (error: any) {
-    console.error("Admin approve payment error:", error);
+    
     res.status(500).json({ error: 'Failed to approve payment' });
   }
 };
@@ -238,7 +239,7 @@ export const adminGetPaymentsHttp = async (req: Request, res: Response) => {
           const userDoc = await db.collection("users").doc(data.uid).get();
           userData = userDoc.exists ? userDoc.data() : null;
         } catch (error) {
-          console.error(`Error fetching user ${data.uid}:`, error);
+          
         }
 
         return {
@@ -251,7 +252,7 @@ export const adminGetPaymentsHttp = async (req: Request, res: Response) => {
 
     res.status(200).json({ payments });
   } catch (error: any) {
-    console.error("Admin get payments error:", error);
+    
     res.status(500).json({ error: 'Failed to get payments' });
   }
 };

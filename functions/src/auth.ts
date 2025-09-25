@@ -159,7 +159,7 @@ function generateOtp(): string {
   
       return {success: true, message: "Email successfully verified!"};
     } catch (error) {
-      logger.error('Error verifying OTP:', error);
+      
       if (error instanceof HttpsError) {
         throw error;
       }
@@ -190,7 +190,7 @@ function generateOtp(): string {
   
       return {success: true, message: "A new OTP has been generated."};
     } catch (error) {
-      logger.error('Error resending OTP:', error);
+      
       if (error instanceof HttpsError) {
         throw error;
       }

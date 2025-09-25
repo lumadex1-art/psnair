@@ -76,7 +76,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         // Use sessionStorage to persist across reloads within the same tab/session
         sessionStorage.setItem('referralCode', refCodeFromUrl);
       } catch (error) {
-        console.error("Could not write to sessionStorage:", error);
+        
       }
     }
   }, [searchParams]);
@@ -84,18 +84,15 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const processStoredReferral = useCallback(async () => {
     try {
       const storedRefCode = sessionStorage.getItem('referralCode');
-      console.log('🔍 Stored referral code:', storedRefCode); // DEBUG LOG
       
       if (!storedRefCode) return;
   
       const functions = getFunctions();
       const processFunction = httpsCallable(functions, 'referralProcess');
       
-      console.log('🚀 Processing referral with code:', storedRefCode); // DEBUG LOG
       
       const result = await processFunction({ referralCode: storedRefCode });
       
-      console.log('✅ Referral processed successfully:', result); // DEBUG LOG
       
       // Clear the code after processing to prevent reuse
       sessionStorage.removeItem('referralCode');
@@ -106,8 +103,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       });
   
     } catch (error: any) {
-      console.error("❌ Failed to process stored referral code:", error); // ENHANCED ERROR LOG
-      console.error("❌ Error details:", error.message, error.code, error.details); // MORE DETAILS
+      
       
       // Still remove the key to prevent retries
       sessionStorage.removeItem('referralCode');
@@ -149,7 +145,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     
     // If it's a new user, check for a referral code
     if (isNewUser) {
-      console.log('🆕 New user detected, processing referral...'); // DEBUG LOG
+      
       await processStoredReferral();
     }
   
