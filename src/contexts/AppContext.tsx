@@ -76,7 +76,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         // Use sessionStorage to persist across reloads within the same tab/session
         sessionStorage.setItem('referralCode', refCodeFromUrl);
       } catch (error) {
-        
+        // Error handled silently for production
       }
     }
   }, [searchParams]);
@@ -103,7 +103,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       });
   
     } catch (error: any) {
-      
+      // Error handled silently for production
       
       // Still remove the key to prevent retries
       sessionStorage.removeItem('referralCode');
@@ -145,7 +145,6 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     
     // If it's a new user, check for a referral code
     if (isNewUser) {
-      
       await processStoredReferral();
     }
   

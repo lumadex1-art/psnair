@@ -18,9 +18,9 @@ export const SOLANA_CONFIG = {
   // Network settings (public)
   NETWORK: process.env.NEXT_PUBLIC_SOLANA_NETWORK || "mainnet-beta",
   
-  // RPC endpoints (public) - Updated untuk mengatasi 403 Forbidden
+  // RPC endpoints - Use environment variables for security
   RPC_ENDPOINTS: {
-    mainnet: "https://rpc-mainnet.solanatracker.io/?api_key=bb9aeffe-6d8f-4df1-a357-d0dfde36ee28",
+    mainnet: process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
     devnet: "https://api.devnet.solana.com",
     testnet: "https://api.testnet.solana.com",
   },

@@ -47,7 +47,7 @@ export default function ProfilePage() {
         setMonthlyStats(data.monthlyStats);
       }
     } catch (error) {
-      console.error('Error fetching referral stats:', error);
+      // Error handled silently for production
     }
   };
 

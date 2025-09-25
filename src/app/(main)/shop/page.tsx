@@ -27,6 +27,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PLAN_CONFIG } from '@/lib/config';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 type Tier = keyof typeof PLAN_CONFIG.PRICES;
 
@@ -328,97 +329,103 @@ export default function ShopPage() {
 
       {/* Bank Transfer Dialog */}
       <Dialog open={isBankTransferOpen} onOpenChange={setIsBankTransferOpen}>
-        <DialogContent className="max-w-md">
-            <DialogHeader>
-                <DialogTitle>Formulir Transfer Bank</DialogTitle>
-                <DialogDescription>
-                    Silakan isi detail transfer Anda dan lakukan pembayaran ke salah satu rekening di bawah ini.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                    <p className="text-sm font-medium text-primary">Paket Dipilih</p>
-                    <p className="font-bold text-xl">{bankTransferDetails?.planName}</p>
-                    <p className="font-semibold text-lg">{bankTransferDetails?.planPrice}</p>
-                </div>
+        <DialogContent className="max-w-md p-0">
+          <ScrollArea className="max-h-[90vh]">
+            <div className="p-6">
+              <DialogHeader>
+                  <DialogTitle>Formulir Transfer Bank</DialogTitle>
+                  <DialogDescription>
+                      Silakan isi detail transfer Anda dan lakukan pembayaran ke salah satu rekening di bawah ini.
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                  <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                      <p className="text-sm font-medium text-primary">Paket Dipilih</p>
+                      <p className="font-bold text-xl">{bankTransferDetails?.planName}</p>
+                      <p className="font-semibold text-lg">{bankTransferDetails?.planPrice}</p>
+                  </div>
 
-                {/* Activation Notice */}
-                <div className="flex items-start gap-3 rounded-lg border border-orange-200/80 bg-orange-50/80 p-3 dark:border-orange-800/50 dark:bg-orange-900/20">
-                    <Hourglass className="h-5 w-5 flex-shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
-                    <div className="flex-1">
-                        <h4 className="font-semibold text-sm text-orange-700 dark:text-orange-300">Aktivasi Kilat! 🚀</h4>
-                        <p className="text-xs text-orange-600 dark:text-orange-400/80">
-                            Paket Anda akan aktif dalam maksimal 24 jam setelah konfirmasi pembayaran kami terima.
-                        </p>
-                    </div>
-                </div>
+                  {/* Activation Notice */}
+                  <div className="flex items-start gap-3 rounded-lg border border-orange-200/80 bg-orange-50/80 p-3 dark:border-orange-800/50 dark:bg-orange-900/20">
+                      <Hourglass className="h-5 w-5 flex-shrink-0 text-orange-600 dark:text-orange-400 mt-0.5" />
+                      <div className="flex-1">
+                          <h4 className="font-semibold text-sm text-orange-700 dark:text-orange-300">Aktivasi Kilat! 🚀</h4>
+                          <p className="text-xs text-orange-600 dark:text-orange-400/80">
+                              Paket Anda akan aktif dalam maksimal 24 jam setelah konfirmasi pembayaran kami terima.
+                          </p>
+                      </div>
+                  </div>
 
-                {/* Form Inputs */}
-                <div className="space-y-3">
-                    <div>
-                        <Label htmlFor="sender-name">Nama Pengirim</Label>
-                        <Input id="sender-name" placeholder="John Doe" />
-                    </div>
-                    <div>
-                        <Label htmlFor="sender-bank">Bank Pengirim</Label>
-                        <Input id="sender-bank" placeholder="BCA, Mandiri, etc." />
-                    </div>
-                    <div>
-                        <Label htmlFor="account-number">No. Rekening</Label>
-                        <Input id="account-number" placeholder="1234567890" />
-                    </div>
-                    <div>
-                        <Label htmlFor="amount-sent">Jumlah yang Dikirim</Label>
-                        <Input id="amount-sent" placeholder={bankTransferDetails?.planPrice} />
-                    </div>
-                </div>
+                  {/* Form Inputs */}
+                  <div className="space-y-3">
+                      <div>
+                          <Label htmlFor="sender-name">Nama Pengirim</Label>
+                          <Input id="sender-name" placeholder="John Doe" />
+                      </div>
+                      <div>
+                          <Label htmlFor="sender-bank">Bank Pengirim</Label>
+                          <Input id="sender-bank" placeholder="BCA, Mandiri, etc." />
+                      </div>
+                      <div>
+                          <Label htmlFor="account-number">No. Rekening</Label>
+                          <Input id="account-number" placeholder="1234567890" />
+                      </div>
+                      <div>
+                          <Label htmlFor="amount-sent">Jumlah yang Dikirim</Label>
+                          <Input id="amount-sent" placeholder={bankTransferDetails?.planPrice} />
+                      </div>
+                  </div>
 
-                {/* Bank Details */}
-                <div className="space-y-3 pt-4 border-t">
-                     <h4 className="font-semibold">Rekening Tujuan</h4>
-                     <div className="p-3 bg-muted rounded-lg border">
-                         <p className="font-bold text-blue-600">BCA</p>
-                         <div className="flex items-center justify-between">
-                            <p className="font-mono text-lg">4364543214</p>
-                            <Button variant="ghost" size="icon" onClick={() => handleCopy('4364543214', 'BCA')}>
-                               {copied === 'BCA' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                            </Button>
-                         </div>
-                         <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
-                     </div>
+                  {/* Bank Details */}
+                  <div className="space-y-3 pt-4 border-t">
+                      <h4 className="font-semibold">Rekening Tujuan</h4>
                       <div className="p-3 bg-muted rounded-lg border">
-                         <p className="font-bold text-blue-800">MANDIRI</p>
+                          <p className="font-bold text-blue-600">BCA</p>
                           <div className="flex items-center justify-between">
-                            <p className="font-mono text-lg">1220013904209</p>
-                            <Button variant="ghost" size="icon" onClick={() => handleCopy('1220013904209', 'Mandiri')}>
-                               {copied === 'Mandiri' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                            </Button>
+                              <p className="font-mono text-lg">4364543214</p>
+                              <Button variant="ghost" size="icon" onClick={() => handleCopy('4364543214', 'BCA')}>
+                                {copied === 'BCA' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                              </Button>
                           </div>
-                         <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
-                     </div>
-                </div>
+                          <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
+                      </div>
+                        <div className="p-3 bg-muted rounded-lg border">
+                          <p className="font-bold text-blue-800">MANDIRI</p>
+                            <div className="flex items-center justify-between">
+                              <p className="font-mono text-lg">1220013904209</p>
+                              <Button variant="ghost" size="icon" onClick={() => handleCopy('1220013904209', 'Mandiri')}>
+                                {copied === 'Mandiri' ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                              </Button>
+                            </div>
+                          <p className="text-sm">a/n PT ASIA SISTEM TEKNOLOGI</p>
+                      </div>
+                  </div>
 
-                {/* Confirmation */}
-                <div className="text-center p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                    <p className="text-sm text-green-700 dark:text-green-300">
-                        Setelah transfer, harap konfirmasi ke WhatsApp <strong className="font-mono">+6281320035308</strong>
-                    </p>
-                </div>
+                  {/* Confirmation */}
+                  <div className="text-center p-3 bg-green-100 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <p className="text-sm text-green-700 dark:text-green-300">
+                          Setelah transfer, harap konfirmasi ke WhatsApp <strong className="font-mono">+6281320035308</strong>
+                      </p>
+                  </div>
+              </div>
+              <DialogFooter className="sticky bottom-0 bg-background/95 p-6 pt-2 -mx-6 -mb-6 border-t">
+                  <DialogClose asChild>
+                      <Button variant="secondary">Tutup</Button>
+                  </DialogClose>
+                  <Button onClick={() => {
+                      toast({ title: 'Informasi Terkirim', description: 'Silakan lanjutkan transfer dan konfirmasi.' });
+                      setIsBankTransferOpen(false);
+                  }}>
+                      Kirim Informasi
+                  </Button>
+              </DialogFooter>
             </div>
-            <DialogFooter>
-                <DialogClose asChild>
-                    <Button variant="secondary">Tutup</Button>
-                </DialogClose>
-                 <Button onClick={() => {
-                     toast({ title: 'Informasi Terkirim', description: 'Silakan lanjutkan transfer dan konfirmasi.' });
-                     setIsBankTransferOpen(false);
-                 }}>
-                    Kirim Informasi
-                </Button>
-            </DialogFooter>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
 
     </>
   );
 }
+
+    

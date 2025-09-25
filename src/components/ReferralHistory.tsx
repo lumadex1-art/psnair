@@ -27,7 +27,7 @@ const formatDate = (dateValue: any): string => {
     // Handle string/number
     return new Date(dateValue).toLocaleDateString();
   } catch (error) {
-    console.error('Date formatting error:', error);
+    // Error handled silently for production
     return 'Invalid date';
   }
 };
@@ -76,7 +76,7 @@ export function ReferralHistory() {
         setMonthlyStats(data.monthlyStats);
       }
     } catch (error) {
-      console.error('Error fetching referral history:', error);
+      // Error handled silently for production
     } finally {
       setLoading(false);
     }

@@ -8,9 +8,8 @@ const testReferral = async () => {
     const processFunction = httpsCallable(functions, 'referralProcess');
     
     const result = await processFunction({ referralCode: 'YKH2X2' });
-    console.log('Referral result:', result);
   } catch (error) {
-    console.error('Referral error:', error);
+    // Error handled silently for production
   }
 };
 
