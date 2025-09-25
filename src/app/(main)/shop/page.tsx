@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Wallet, RefreshCw, TrendingUp, Loader2, Landmark, Copy, Hourglass } from 'lucide-react'; // ✅ HAPUS: Link as LinkIcon, Share2
+import { CheckCircle, Wallet, RefreshCw, TrendingUp, Loader2, Landmark, Copy, Hourglass, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,7 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
     name: name as Tier,
     description: data.features.join(', '),
     features: data.features,
-    isPopular: false, 
+    isPopular: false,
   }));
 
 const idrPrices: Record<Tier, string> = {
@@ -63,6 +63,14 @@ interface BankTransferDetails {
     planPrice: string;
 }
 
+interface PurchaseConfirmationDetails {
+    plan: Tier;
+    priceSol: number;
+    priceUsd: number;
+    paymentMethod: 'solana' | 'bank';
+}
+
+
 export default function ShopPage() {
   const { userTier, user } = useAppContext();
   const { toast } = useToast();
@@ -79,6 +87,12 @@ export default function ShopPage() {
   const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
   const [bankTransferDetails, setBankTransferDetails] = useState<BankTransferDetails | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+
+  // State for Purchase Confirmation Dialog
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [confirmationDetails, setConfirmationDetails] = useState<PurchaseConfirmationDetails | null>(null);
+  const [confirmationInput, setConfirmationInput] = useState('');
+
 
   const loadPricing = async () => {
     try {
@@ -103,6 +117,23 @@ export default function ShopPage() {
     const interval = setInterval(loadPricing, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const openConfirmationDialog = (plan: Tier, paymentMethod: 'solana' | 'bank') => {
+    const pricing = planPricing[plan];
+    if (!pricing) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Plan pricing not available.' });
+        return;
+    }
+    setConfirmationDetails({
+        plan,
+        priceSol: PLAN_CONFIG.PRICES[plan],
+        priceUsd: pricing.usd,
+        paymentMethod,
+    });
+    setConfirmationInput('');
+    setIsConfirmationOpen(true);
+};
+
 
   const handlePurchase = async (plan: Tier) => {
     if (!connected || !publicKey) {
@@ -142,80 +173,14 @@ export default function ShopPage() {
       const confirmData = await confirmResponse.json();
       if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
       
-     // purchasePlan(plan);
       toast({ title: 'Purchase Successful!', description: `You are now on the ${plan} plan. Please await admin approval.` });
     } catch (err: any) {
       toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     } finally {
       setPurchasingPlan(null);
+      setIsConfirmationOpen(false);
     }
   };
-
-  const handleSolanaPurchase = async (plan: Tier) => {
-    if (!publicKey || !signTransaction) {
-      toast({ variant: 'destructive', title: 'Wallet not connected', description: 'Please connect your wallet first.' });
-      return;
-    }
-
-    setPurchasingPlan(plan);
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) throw new Error('Authentication required');
-
-      const response = await fetch('https://createpaymentlinkcors-ivtinaswgq-uc.a.run.app', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ planId: plan }),
-      });
-      const intent = await response.json();
-      if (!response.ok) throw new Error(intent.error || 'Failed to create payment intent');
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: MERCHANT_WALLET,
-          lamports: intent.amountLamports,
-        })
-      );
-
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = publicKey;
-
-      const signedTransaction = await signTransaction(transaction);
-      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-      await connection.confirmTransaction(signature);
-      
-      const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-         body: JSON.stringify({ transactionId: intent.transactionId, signature }),
-      });
-      const confirmData = await confirmResponse.json();
-      if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
-      
-      // ✅ HAPUS: purchasePlan(plan); - fungsi ini sudah dihapus dari AppContext
-      toast({ 
-        title: 'Payment Verified!', 
-        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
-      });
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
-    } finally {
-      setPurchasingPlan(null);
-    }
-  };
-
- 
-  // ✅ HAPUS: handleCreatePaymentLink function (baris 213-272)
-
-  const handleOpenBankTransfer = (planName: Tier) => {
-    setBankTransferDetails({
-        planName,
-        planPrice: idrPrices[planName]
-    });
-    setIsBankTransferOpen(true);
-  }
 
   const handleBankTransfer = (plan: Tier) => {
     setBankTransferDetails({
@@ -223,6 +188,17 @@ export default function ShopPage() {
       planPrice: idrPrices[plan]
     });
     setIsBankTransferOpen(true);
+    setIsConfirmationOpen(false); // Close confirmation dialog
+  };
+
+  const handleConfirmAndProceed = () => {
+    if (!confirmationDetails) return;
+
+    if (confirmationDetails.paymentMethod === 'solana') {
+        handlePurchase(confirmationDetails.plan);
+    } else {
+        handleBankTransfer(confirmationDetails.plan);
+    }
   };
 
   const handleCopy = (text: string, type: string) => {
@@ -231,6 +207,9 @@ export default function ShopPage() {
     toast({ title: 'Copied!', description: `${type} account number copied to clipboard.` });
     setTimeout(() => setCopied(null), 2000);
   };
+  
+  const isConfirmationInputValid = confirmationDetails ? parseFloat(confirmationInput) >= confirmationDetails.priceSol : false;
+
 
   return (
     <>
@@ -268,17 +247,9 @@ export default function ShopPage() {
               const pricing = planPricing[plan.name];
               const isCurrentPlan = userTier === plan.name;
               const isProcessing = purchasingPlan === plan.name;
-              // ✅ HAPUS: const isLinkCreationInProgress = isCreatingLink && purchasingPlan === plan.name;
 
               return (
-                <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
-                  {plan.isPopular && (
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
-                      <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1.5 shadow-lg">
-                        ⭐ MOST POPULAR
-                      </Badge>
-                    </div>
-                  )}
+                <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -301,7 +272,7 @@ export default function ShopPage() {
                       {plan.features.map((feature, index) => <li key={index} className="flex items-center space-x-3 group"><div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-primary/20 to-primary/10 flex items-center justify-center"><CheckCircle className="h-3 w-3 text-primary" /></div><span className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{feature}</span></li>)}
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
-                       <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
+                       <Button onClick={() => openConfirmationDialog(plan.name, 'solana')} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
                           {isProcessing && purchasingPlan === plan.name ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -317,7 +288,7 @@ export default function ShopPage() {
                             `Upgrade to ${plan.name}`
                           )}
                       </Button>
-                      <Button variant="outline" onClick={() => handleOpenBankTransfer(plan.name)} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
+                      <Button variant="outline" onClick={() => openConfirmationDialog(plan.name, 'bank')} disabled={isCurrentPlan} className="sm:w-auto w-full h-10 font-semibold text-sm">
                         <Landmark className="mr-2 h-4 w-4" />
                         Bank Transfer
                       </Button>
@@ -330,7 +301,66 @@ export default function ShopPage() {
         </div>
       </div>
       
-      {/* ✅ HAPUS: Payment Link Dialog (baris 387-401) */}
+       {/* Purchase Confirmation Dialog */}
+       <Dialog open={isConfirmationOpen} onOpenChange={setIsConfirmationOpen}>
+            <DialogContent className="max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Confirm Your Purchase</DialogTitle>
+                    <DialogDescription>
+                        To ensure security, please confirm the amount before proceeding with your purchase.
+                    </DialogDescription>
+                </DialogHeader>
+                {confirmationDetails && (
+                    <div className="space-y-4 py-4">
+                        <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
+                            <p className="text-sm font-medium text-primary">You are upgrading to</p>
+                            <p className="font-bold text-xl">{confirmationDetails.plan}</p>
+                            <p className="font-semibold text-2xl font-mono mt-2">
+                                {formatSolAmount(confirmationDetails.priceSol)} SOL
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                (≈ {formatUsdAmount(confirmationDetails.priceUsd)})
+                            </p>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="confirmation-amount" className="text-sm font-medium">
+                                Type the SOL amount to confirm:
+                            </Label>
+                            <Input
+                                id="confirmation-amount"
+                                type="number"
+                                placeholder={formatSolAmount(confirmationDetails.priceSol)}
+                                value={confirmationInput}
+                                onChange={(e) => setConfirmationInput(e.target.value)}
+                                className="text-center font-mono text-lg"
+                                step="any"
+                            />
+                            <p className="text-xs text-muted-foreground text-center">
+                                Please enter exactly <span className="font-bold">{formatSolAmount(confirmationDetails.priceSol)}</span> or more.
+                            </p>
+                        </div>
+                    </div>
+                )}
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button variant="outline">Cancel</Button>
+                    </DialogClose>
+                    <Button
+                        onClick={handleConfirmAndProceed}
+                        disabled={!isConfirmationInputValid || !!purchasingPlan}
+                    >
+                        {purchasingPlan ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <ShieldCheck className="mr-2 h-4 w-4" />
+                        )}
+                        Confirm & Proceed
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
 
       {/* Bank Transfer Dialog */}
       <Dialog open={isBankTransferOpen} onOpenChange={setIsBankTransferOpen}>
@@ -425,7 +455,7 @@ export default function ShopPage() {
                         <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.894 11.892-1.99 0-3.903-.52-5.586-1.456l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.371-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01s-.521.074-.792.372c-.272.296-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.206 5.077 4.487.709.306 1.262.489 1.694.626.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.289.173-1.414z" />
                       </svg>
                       <span>
-                        Setelah transfer, harap konfirmasi ke WhatsApp{' '}
+                        Setelah transfer, harap konfirmasi ke WhatsApp{\' \'\'\'}
                         <strong className="font-mono">+6281320035308</strong>
                       </span>
                     </a>
@@ -452,15 +482,5 @@ export default function ShopPage() {
     </>
   );
 }
-
-    
-
-    
-
-    
-
-
-
-    
 
     
