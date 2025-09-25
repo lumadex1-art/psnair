@@ -249,8 +249,8 @@ export default function ShopPage() {
               const isProcessing = purchasingPlan === plan.name;
 
               return (
-                <>
-                <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
+                <div key={plan.name}>
+                <Card className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -296,7 +296,7 @@ export default function ShopPage() {
                     </div>
                   </CardContent>
                 </Card>
-                </>
+                </div>
               );
             })}
           </div>
@@ -480,7 +480,6 @@ export default function ShopPage() {
           </ScrollArea>
         </DialogContent>
       </Dialog>
-
     </>
   );
 }
