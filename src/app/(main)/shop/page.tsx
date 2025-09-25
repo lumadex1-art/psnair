@@ -11,10 +11,11 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
-import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
+import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -73,7 +74,7 @@ interface PurchaseConfirmationDetails {
 export default function ShopPage() {
   const { userTier, user } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, sendTransaction, signTransaction } = useWallet();
+  const { connected, publicKey, sendTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
@@ -81,6 +82,7 @@ export default function ShopPage() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [purchasingPlan, setPurchasingPlan] = useState<Tier | null>(null);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
 
   // State for Bank Transfer Dialog
   const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
@@ -117,6 +119,23 @@ export default function ShopPage() {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (connected && publicKey) {
+      connection.getBalance(publicKey).then(balance => {
+        setSolBalance(balance / LAMPORTS_PER_SOL);
+      });
+      // Optional: Listen for balance changes
+      const subscriptionId = connection.onAccountChange(publicKey, (accountInfo) => {
+        setSolBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
+      });
+      return () => {
+        connection.removeAccountChangeListener(subscriptionId);
+      }
+    } else {
+      setSolBalance(null);
+    }
+  }, [connected, publicKey, connection]);
+
   const openConfirmationDialog = (plan: Tier) => {
     const pricing = planPricing[plan];
     if (!pricing) {
@@ -133,55 +152,70 @@ export default function ShopPage() {
 };
 
 
-  const handleSolanaPurchase = async (plan: Tier) => {
-    if (!connected || !publicKey) {
-      toast({ variant: 'destructive', title: 'Wallet not connected' });
-      return;
-    }
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      toast({ variant: 'destructive', title: 'Not authenticated' });
-      return;
-    }
+const handleSolanaPurchase = async (plan: Tier) => {
+  if (!connected || !publicKey || !user) {
+    toast({ variant: 'destructive', title: 'Wallet or User not connected' });
+    return;
+  }
+  
+  const priceInSol = PLAN_CONFIG.PRICES[plan];
+  if (priceInSol <= 0) {
+    toast({ variant: 'destructive', title: 'Invalid Plan Price' });
+    return;
+  }
 
-    setPurchasingPlan(plan);
-    try {
-      const token = await currentUser.getIdToken();
-      const intentResponse = await fetch('https://solanacreateintentcors-ivtinaswgq-uc.a.run.app', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ planId: plan }),
-      });
-      const intent = await intentResponse.json();
-      if (!intentResponse.ok) throw new Error(intent.error || 'Failed to create payment intent');
-      
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-      const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: MERCHANT_WALLET, lamports: intent.amountLamports }));
-      tx.feePayer = publicKey;
-      tx.recentBlockhash = blockhash;
-      
-      const signature = await sendTransaction(tx, connection);
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-      
-      const confirmResponse = await fetch('https://solanaconfirmcors-ivtinaswgq-uc.a.run.app', {
-         method: 'POST',
-         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-         body: JSON.stringify({ transactionId: intent.transactionId, signature }),
-      });
-      const confirmData = await confirmResponse.json();
-      if (!confirmResponse.ok) throw new Error(confirmData.error || 'Server could not verify payment');
-      
-      toast({ 
-        title: 'Purchase Successful!', 
-        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
-      });
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
-    } finally {
-      setPurchasingPlan(null);
-      setIsConfirmationOpen(false);
-    }
-  };
+  setPurchasingPlan(plan);
+  try {
+    const transactionId = doc(collection(db, 'transactions')).id;
+    const amountLamports = Math.ceil(priceInSol * LAMPORTS_PER_SOL);
+
+    // 1. Create a "pending" transaction document in Firestore
+    await setDoc(doc(db, 'transactions', transactionId), {
+      uid: user.uid,
+      userName: user.name,
+      userEmail: user.email,
+      planId: plan,
+      amountLamports: amountLamports,
+      currency: 'SOL',
+      status: 'pending',
+      provider: 'solana',
+      createdAt: serverTimestamp(),
+      planUpgraded: false,
+    });
+
+    // 2. Create and send the on-chain transaction
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+    const tx = new Transaction().add(
+      SystemProgram.transfer({
+        fromPubkey: publicKey,
+        toPubkey: MERCHANT_WALLET,
+        lamports: amountLamports,
+      })
+    );
+    tx.feePayer = publicKey;
+    tx.recentBlockhash = blockhash;
+
+    const signature = await sendTransaction(tx, connection);
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+
+    // 3. Update the transaction document with the signature and 'paid' status
+    await setDoc(doc(db, 'transactions', transactionId), {
+      status: 'paid',
+      providerRef: signature,
+      confirmedAt: serverTimestamp(),
+    }, { merge: true });
+
+    toast({
+      title: 'Purchase Successful!',
+      description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.`,
+    });
+  } catch (err: any) {
+    toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
+  } finally {
+    setPurchasingPlan(null);
+    setIsConfirmationOpen(false);
+  }
+};
 
   const handleBankTransfer = (plan: Tier) => {
     setBankTransferDetails({
@@ -245,6 +279,7 @@ export default function ShopPage() {
 
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
+                  {plan.isPopular && <Badge className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold animate-pulse">MOST POPULAR</Badge>}
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -317,6 +352,14 @@ export default function ShopPage() {
                                 (≈ {formatUsdAmount(confirmationDetails.priceUsd)})
                             </p>
                         </div>
+
+                         <div className="p-3 bg-muted rounded-lg border text-center">
+                            <p className="text-xs text-muted-foreground">Your Solana Balance</p>
+                            <p className="font-mono font-semibold text-base">
+                                {solBalance !== null ? `${formatSolAmount(solBalance)} SOL` : 'Loading...'}
+                            </p>
+                        </div>
+
 
                         <div className="space-y-2">
                             <Label htmlFor="confirmation-amount" className="text-sm font-medium">
