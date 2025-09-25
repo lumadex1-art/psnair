@@ -39,7 +39,7 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
     name: name as Tier,
     description: data.features.join(', '),
     features: data.features,
-    isPopular: name === 'Diamond', 
+    isPopular: false, 
   }));
 
 const idrPrices: Record<Tier, string> = {
@@ -438,3 +438,4 @@ export default function ShopPage() {
     
 
     
+
