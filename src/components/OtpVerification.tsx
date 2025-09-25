@@ -83,7 +83,7 @@ export default function OtpVerification({ email, onVerificationSuccess, onBack }
         title: 'OTP Sent',
         description: 'A new OTP code has been sent to your email.',
       });
-      setCountdown(60); // Start 60-second cooldown
+      setCountdown(120); // Start 120-second (2 minute) cooldown
 
     } catch (error: any) {
       toast({
