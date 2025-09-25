@@ -21,7 +21,7 @@ export default function ClaimPage() {
   const cooldownDuration = (24 * 60 * 60 * 1000) / claimsPerDay;
 
   // Conversion rates
-  const EPSN_TO_IDR = 250; // 1 EPSN = 250 IDR
+  const EPSN_TO_IDR = 500; // 1 EPSN = 250 IDR
   const EPSN_TO_PSN = 1000; // 1000 EPSN = 1 PSN
   const PSN_TO_IDR = 250000; // 1 PSN = 250,000 IDR
 

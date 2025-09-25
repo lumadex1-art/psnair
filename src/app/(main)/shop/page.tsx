@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Wallet, RefreshCw, TrendingUp, Link as LinkIcon, Share2, Loader2, Landmark, Copy, Hourglass } from 'lucide-react';
+import { CheckCircle, Wallet, RefreshCw, TrendingUp, Loader2, Landmark, Copy, Hourglass } from 'lucide-react'; // ✅ HAPUS: Link as LinkIcon, Share2
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +43,12 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
 
 const idrPrices: Record<Tier, string> = {
     "Free": "Rp0",
-    "Starter": "Rp65.600",      // ✅ TAMBAHKAN: 0.0183486 SOL ≈ Rp65.600
+    "Starter": "Rp65.600",
     "Silver": "Rp131.200",
     "Gold": "Rp262.400",
     "Platinum": "Rp738.000",
     "Diamond": "Rp1.476.000",
 }
-
 
 interface PlanPricing {
   usd: number;
@@ -66,16 +65,13 @@ interface BankTransferDetails {
 export default function ShopPage() {
   const { userTier, user } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, sendTransaction, signTransaction } = useWallet(); // ✅ TAMBAHKAN signTransaction
+  const { connected, publicKey, sendTransaction, signTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
   const [solPrice, setSolPrice] = useState<number>(0);
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [isCreatingLink, setIsCreatingLink] = useState(false);
-  const [paymentLink, setPaymentLink] = useState('');
-  const [isLinkDialogOpen, setIsLinkDialogOpen] = useState(false);
   const [purchasingPlan, setPurchasingPlan] = useState<Tier | null>(null);
 
   // State for Bank Transfer Dialog
@@ -210,65 +206,8 @@ export default function ShopPage() {
     }
   };
 
-  const handleCreatePaymentLink = async (planId: Tier) => {
-    if (!user) return;
-    setIsCreatingLink(true);
-    setPaymentLink('');
-    setPurchasingPlan(planId);
-
-    try {
-        const { getAuth } = await import('firebase/auth');
-        const auth = getAuth();
-        const currentUser = auth.currentUser;
-        if (!currentUser) {
-          toast({ variant: 'destructive', title: 'Authentication Error', description: 'Please login first.' });
-          return;
-        }
-        const idToken = await currentUser.getIdToken();
-
-        const base = process.env.NEXT_PUBLIC_FUNCTIONS_ORIGIN 
-            || 'https://us-central1-studio-2714959067-22ea0.cloudfunctions.net';
-
-        const res = await fetch(`${base}/createPaymentLinkHttp`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${idToken}`,
-          },
-          body: JSON.stringify({ planId }),
-        });
-        
-        if (!res.ok) {
-          const errorText = await res.text();
-          console.error('createPaymentLink failed:', errorText);
-          let errorMessage = 'Failed to create payment link.';
-          try {
-            const errorJson = JSON.parse(errorText);
-            errorMessage = errorJson.error || errorMessage;
-          } catch (e) {
-            if (errorText.length < 200) {
-              errorMessage = errorText;
-            }
-          }
-          throw new Error(errorMessage);
-        }
-
-        const data = await res.json();
-        
-        if (!data?.success) {
-          throw new Error(data?.error || 'Failed to create payment link. Please try again later.');
-        }
-        
-        setPaymentLink(data.link);
-        setIsLinkDialogOpen(true);
-
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Error Creating Link', description: error.message });
-    } finally {
-        setIsCreatingLink(false);
-        setPurchasingPlan(null);
-    }
-  };
+ 
+  // ✅ HAPUS: handleCreatePaymentLink function (baris 213-272)
 
   const handleOpenBankTransfer = (planName: Tier) => {
     setBankTransferDetails({
@@ -278,19 +217,20 @@ export default function ShopPage() {
     setIsBankTransferOpen(true);
   }
 
-
-  const copyLink = () => {
-    navigator.clipboard.writeText(paymentLink);
-    toast({ title: 'Copied!', description: 'Payment link copied to clipboard.' });
+  const handleBankTransfer = (plan: Tier) => {
+    setBankTransferDetails({
+      planName: plan,
+      planPrice: idrPrices[plan]
+    });
+    setIsBankTransferOpen(true);
   };
-  
+
   const handleCopy = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
     setCopied(type);
-    toast({ title: `${type} Copied!`, description: `Copied to clipboard.` });
+    toast({ title: 'Copied!', description: `${type} account number copied to clipboard.` });
     setTimeout(() => setCopied(null), 2000);
   };
-
 
   return (
     <>
@@ -328,7 +268,7 @@ export default function ShopPage() {
               const pricing = planPricing[plan.name];
               const isCurrentPlan = userTier === plan.name;
               const isProcessing = purchasingPlan === plan.name;
-              const isLinkCreationInProgress = isCreatingLink && purchasingPlan === plan.name;
+              // ✅ HAPUS: const isLinkCreationInProgress = isCreatingLink && purchasingPlan === plan.name;
 
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
@@ -356,7 +296,7 @@ export default function ShopPage() {
                     </ul>
                     <div className="flex flex-col sm:flex-row items-center gap-2">
                        <Button onClick={() => handlePurchase(plan.name)} disabled={isCurrentPlan || !connected || isLoadingPrices || isProcessing || !!purchasingPlan} className={cn('sm:w-auto w-full h-10 font-semibold text-sm', isCurrentPlan && 'bg-green-600 hover:bg-green-700 text-white')}>
-                          {isProcessing && purchasingPlan === plan.name && !isCreatingLink ? (
+                          {isProcessing && purchasingPlan === plan.name ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                               Processing...
@@ -383,21 +323,8 @@ export default function ShopPage() {
           </div>
         </div>
       </div>
-      <Dialog open={isLinkDialogOpen} onOpenChange={setIsLinkDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Payment Link Created!</DialogTitle>
-            <DialogDescription>Share this link with anyone to pay for the upgrade. This link is valid for 1 hour.</DialogDescription>
-          </DialogHeader>
-          <div className="my-4">
-            <Input value={paymentLink} readOnly />
-          </div>
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsLinkDialogOpen(false)}>Close</Button>
-            <Button onClick={copyLink}><Share2 className="mr-2 h-4 w-4"/>Copy & Share</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      
+      {/* ✅ HAPUS: Payment Link Dialog (baris 387-401) */}
 
       {/* Bank Transfer Dialog */}
       <Dialog open={isBankTransferOpen} onOpenChange={setIsBankTransferOpen}>
@@ -445,8 +372,6 @@ export default function ShopPage() {
                         <Input id="amount-sent" placeholder={bankTransferDetails?.planPrice} />
                     </div>
                 </div>
-
-                
 
                 {/* Bank Details */}
                 <div className="space-y-3 pt-4 border-t">

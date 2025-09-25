@@ -6,3 +6,4 @@ export { ReferralStats } from './ReferralStats';
 export { UserAvatar } from './UserAvatar';
 export { BalanceStatus } from './BalanceStatus';
 export { BottomNav } from './BottomNav';
+export { OtpVerification } from './OtpVerification';

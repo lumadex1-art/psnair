@@ -18,6 +18,7 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const db = getFirestore(app);
-const functions = getFunctions(app);
+//const functions = getFunctions(app, 'asia-southeast1'); // ✅ Set region yang benar
+const functions = getFunctions(app, 'us-central1');
 
 export { app, auth, db, functions };

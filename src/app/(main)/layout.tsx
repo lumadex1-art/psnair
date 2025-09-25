@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useAppContext } from '@/contexts/AppContext';
 import { BottomNav } from '@/components/BottomNav';
 import { cn } from '@/lib/utils';
-import { auth } from '@/lib/firebase';
 
 export default function MainAppLayout({
   children,
@@ -17,16 +16,12 @@ export default function MainAppLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isLoggedIn) {
-        router.replace('/');
-      } else if (auth.currentUser && !auth.currentUser.emailVerified) {
-        router.replace('/auth/verify-otp');
-      }
+    if (!isLoading && !isLoggedIn) {
+      router.replace('/');
     }
   }, [isLoggedIn, isLoading, router]);
 
-  if (isLoading || !isLoggedIn || (auth.currentUser && !auth.currentUser.emailVerified)) {
+  if (isLoading || !isLoggedIn) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />

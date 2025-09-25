@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, {
@@ -8,7 +9,7 @@ import React, {
   useCallback,
 } from 'react';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { auth, db, functions } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { User as FirebaseUser, onAuthStateChanged, signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, Timestamp } from 'firebase/firestore';
 import { useWallet } from '@solana/wallet-adapter-react';
@@ -16,6 +17,7 @@ import { PLAN_CONFIG } from '@/lib/config';
 import { generateUniqueReferralCode } from '@/utils/referralCode';
 import { useToast } from '@/hooks/use-toast';
 import { httpsCallable } from 'firebase/functions';
+import { getFunctions } from 'firebase/functions';
 import { useSearchParams } from 'next/navigation';
 
 type User = {
@@ -24,10 +26,8 @@ type User = {
   username: string;
   avatar: string;
   email: string;
-  emailVerified: boolean;
   phoneNumber: string;
   referredBy?: string;
-  walletAddress?: string;
 };
 
 type Referral = {
@@ -73,6 +73,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     const refCodeFromUrl = searchParams.get('ref');
     if (refCodeFromUrl) {
       try {
+        // Use sessionStorage to persist across reloads within the same tab/session
         sessionStorage.setItem('referralCode', refCodeFromUrl);
       } catch (error) {
         console.error("Could not write to sessionStorage:", error);
@@ -83,11 +84,20 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
   const processStoredReferral = useCallback(async () => {
     try {
       const storedRefCode = sessionStorage.getItem('referralCode');
+      console.log('🔍 Stored referral code:', storedRefCode); // DEBUG LOG
+      
       if (!storedRefCode) return;
   
+      const functions = getFunctions();
       const processFunction = httpsCallable(functions, 'referralProcess');
-      await processFunction({ referralCode: storedRefCode });
       
+      console.log('🚀 Processing referral with code:', storedRefCode); // DEBUG LOG
+      
+      const result = await processFunction({ referralCode: storedRefCode });
+      
+      console.log('✅ Referral processed successfully:', result); // DEBUG LOG
+      
+      // Clear the code after processing to prevent reuse
       sessionStorage.removeItem('referralCode');
       
       toast({
@@ -96,7 +106,10 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       });
   
     } catch (error: any) {
-      console.error("Failed to process stored referral code:", error.message);
+      console.error("❌ Failed to process stored referral code:", error); // ENHANCED ERROR LOG
+      console.error("❌ Error details:", error.message, error.code, error.details); // MORE DETAILS
+      
+      // Still remove the key to prevent retries
       sessionStorage.removeItem('referralCode');
     }
   }, [toast]);
@@ -110,12 +123,15 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       isNewUser = true;
       const generatedReferralCode = await generateUniqueReferralCode(fbUser.uid);
       
+      // Extract username from email (part before @)
+      const extractedName = fbUser.email ? fbUser.email.split('@')[0] : 'User';
+      
       const newUser = {
-        displayName: fbUser.displayName || fbUser.email || `User ${fbUser.uid.slice(0, 5)}`,
-        name: fbUser.displayName || fbUser.email || `User ${fbUser.uid.slice(0, 5)}`,
-        walletAddress: fbUser.providerData.some((p) => p.providerId === "phone") ? null : fbUser.uid,
+        displayName: fbUser.displayName || extractedName,
+        name: fbUser.displayName || extractedName, // Add name field
         email: fbUser.email || '',
         phoneNumber: fbUser.phoneNumber || '',
+        providers: { email: !!fbUser.email, phone: !!fbUser.phoneNumber },
         balance: 0,
         plan: { id: 'Free', maxDailyClaims: 1, rewardPerClaim: 1 },
         claimStats: { todayClaimCount: 0, lastClaimDayKey: '', lastClaimAt: null },
@@ -125,11 +141,15 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         updatedAt: Timestamp.now(),
       };
       await setDoc(userDocRef, newUser);
-      userDoc = await getDoc(userDocRef);
+      userDoc = await getDoc(userDocRef); // Re-fetch the doc
+      
+      // Add delay to ensure document is fully created
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
     
+    // If it's a new user, check for a referral code
     if (isNewUser) {
+      console.log('🆕 New user detected, processing referral...'); // DEBUG LOG
       await processStoredReferral();
     }
   
@@ -152,16 +172,17 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       if (doc.exists()) {
         const userData = doc.data();
         
+        // Extract username from email as fallback
+        const emailUsername = fbUser.email ? fbUser.email.split('@')[0] : 'Anonymous';
+        
         setUser({
           uid: fbUser.uid,
-          name: userData.name || fbUser.displayName || `User ${fbUser.uid.slice(0,5)}`,
+          name: userData.name || fbUser.displayName || emailUsername,
           username: userData.username || '',
           avatar: userData.avatar || fbUser.photoURL || PlaceHolderImages[0]?.imageUrl || '/default-avatar.png',
           email: userData.email || fbUser.email || '',
-          emailVerified: fbUser.emailVerified,
           phoneNumber: userData.phoneNumber || fbUser.phoneNumber || '',
           referredBy: userData.referredBy,
-          walletAddress: userData.walletAddress || null,
         });
         setBalance(userData.balance || 0);
         setUserTier(userData.plan?.id || 'Free');
@@ -200,7 +221,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await signOut(auth);
-      await disconnect();
+      await disconnect(); // Disconnect wallet if connected
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -208,6 +229,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
         description: error.message,
       });
     } finally {
+      // The onAuthStateChanged listener will handle state cleanup
       setIsLoading(false);
     }
   }, [disconnect, toast]);
@@ -217,13 +239,16 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'You must be logged in to claim tokens.' };
     }
     try {
+      const functions = getFunctions();
       const claimFunction = httpsCallable(functions, 'claim');
+      
       const idempotencyKey = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
       
       const result = await claimFunction({ idempotencyKey });
       const data = result.data as any;
 
       if (data.success) {
+        // Data will refresh via onSnapshot, but we can show a toast immediately
         toast({ title: 'Success!', description: data.message });
         return { success: true, message: data.message };
       } else {
@@ -249,7 +274,7 @@ function AppProviderInternal({ children }: { children: React.ReactNode }) {
     isLoading, 
     setIsLoggedIn,
     logout, 
-    claimTokens,
+    claimTokens
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
