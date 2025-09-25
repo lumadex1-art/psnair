@@ -93,7 +93,6 @@ export default function ShopPage() {
       setPlanPricing(pricing);
       setLastUpdated(new Date());
     } catch (error) {
-      toast({ title: 'Pricing Error', description: 'Failed to load current prices. Using fallback values.', variant: 'destructive' });
     } finally {
       setIsLoadingPrices(false);
     }
