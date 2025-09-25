@@ -39,7 +39,7 @@ const plans = Object.entries(PLAN_CONFIG.FEATURES)
     name: name as Tier,
     description: data.features.join(', '),
     features: data.features,
-    isPopular: name === 'Silver', 
+    isPopular: name === 'Diamond', 
   }));
 
 const idrPrices: Record<Tier, string> = {
@@ -273,8 +273,14 @@ export default function ShopPage() {
 
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', plan.isPopular && 'border-2 border-primary shadow-2xl shadow-primary/20', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
-                  {plan.isPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"></div>}
-                  <CardHeader className="pb-4">
+                  {plan.isPopular && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                      <Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1.5 shadow-lg">
+                        ⭐ MOST POPULAR
+                      </Badge>
+                    </div>
+                  )}
+                  <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
                         <CardTitle className="text-2xl font-bold flex items-center gap-3">{plan.name}{isCurrentPlan && <Badge variant="secondary" className="text-xs">Current</Badge>}</CardTitle>
@@ -427,6 +433,8 @@ export default function ShopPage() {
     </>
   );
 }
+
+    
 
     
 
