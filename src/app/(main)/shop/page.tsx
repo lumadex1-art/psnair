@@ -222,7 +222,7 @@ export default function ShopPage() {
     setTimeout(() => setCopied(null), 2000);
   };
   
-  const isConfirmationInputValid = confirmationDetails ? parseFloat(confirmationInput) >= confirmationDetails.priceSol : false;
+  const isConfirmationInputValid = confirmationDetails ? parseFloat(confirmationInput) >= PLAN_CONFIG.PRICES[confirmationDetails.plan] : false;
 
 
   return (
@@ -363,7 +363,7 @@ export default function ShopPage() {
                                 step="any"
                             />
                             <p className="text-xs text-muted-foreground text-center">
-                                Please enter exactly <span className="font-bold">{formatSolAmount(confirmationDetails.priceSol)}</span> or more.
+                                Please enter exactly <span className="font-bold">{PLAN_CONFIG.PRICES[confirmationDetails.plan]}</span> or more.
                             </p>
                         </div>
                     </div>
