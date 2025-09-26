@@ -14,8 +14,8 @@ import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
-import { auth, functions } from '@/lib/firebase';
-import { httpsCallable } from 'firebase/functions';
+import { auth, db } from '@/lib/firebase';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -152,55 +152,50 @@ const handleSolanaPurchase = async (plan: Tier) => {
       toast({ variant: 'destructive', title: 'Wallet not connected' });
       return;
     }
-    if (!auth.currentUser) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
       toast({ variant: 'destructive', title: 'Not authenticated' });
       return;
     }
 
     setPurchasingPlan(plan);
     try {
-      // Step 1: Create payment intent via Firebase Function
-      const createIntent = httpsCallable(functions, 'createPaymentIntent');
-      const intentResult = await createIntent({ planId: plan });
-      const intentData = intentResult.data as any;
-
-      if (!intentData.success) {
-        throw new Error(intentData.error || 'Failed to create payment intent.');
-      }
+      const amountLamports = Math.ceil(PLAN_CONFIG.PRICES[plan] * LAMPORTS_PER_SOL);
+      const transactionRef = doc(collection(db, 'transactions'));
       
-      const { transactionId, amountLamports } = intentData;
-
-      // Step 2: Create and send the Solana transaction
+      await setDoc(transactionRef, {
+          uid: currentUser.uid,
+          planId: plan,
+          status: 'pending',
+          provider: 'solana',
+          amountLamports: amountLamports,
+          currency: 'SOL',
+          createdAt: new Date(),
+          updatedAt: new Date()
+      });
+      
       const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-      const tx = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey: publicKey,
-          toPubkey: new PublicKey(intentData.merchantWallet),
-          lamports: amountLamports,
-        })
-      );
+      const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: MERCHANT_WALLET, lamports: amountLamports }));
       tx.feePayer = publicKey;
       tx.recentBlockhash = blockhash;
       
       const signature = await sendTransaction(tx, connection);
       await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-
-      // Step 3: Confirm payment via Firebase Function
-      const confirmPayment = httpsCallable(functions, 'confirmPayment');
-      const confirmResult = await confirmPayment({ transactionId, signature });
-      const confirmData = confirmResult.data as any;
-
-      if (!confirmData.success) {
-        throw new Error(confirmData.error || 'Server could not verify payment.');
-      }
-
+      
+      await setDoc(doc(db, "transactions", transactionRef.id), {
+        status: 'pending_approval',
+        providerRef: signature,
+        updatedAt: new Date(),
+        confirmedAt: new Date()
+      }, { merge: true });
+      
       toast({ 
         title: 'Purchase Successful!', 
-        description: `Your ${plan} plan purchase is being processed. Please await admin approval.` 
+        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
       });
 
     } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Payment Failed', description: err?.message || 'Please try again.' });
+      toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
     } finally {
       setPurchasingPlan(null);
       setIsConfirmationOpen(false);
@@ -227,7 +222,9 @@ const handleSolanaPurchase = async (plan: Tier) => {
     setTimeout(() => setCopied(null), 2000);
   };
   
-  const isConfirmationInputValid = confirmationDetails ? parseFloat(confirmationInput) >= confirmationDetails.priceSol : false;
+  const isConfirmationInputValid = confirmationDetails
+    ? parseFloat(confirmationInput).toFixed(7) >= confirmationDetails.priceSol.toFixed(7)
+    : false;
 
 
   return (
@@ -512,7 +509,3 @@ const handleSolanaPurchase = async (plan: Tier) => {
     </>
   );
 }
-
-    
-
-    
