@@ -1,33 +1,34 @@
 import { MetadataRoute } from 'next'
  
 export default function sitemap(): MetadataRoute.Sitemap {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://psnaidrop.com';
   return [
     {
-      url: 'https://psnaidrop.com',
+      url: siteUrl,
       lastModified: new Date(),
       changeFrequency: 'yearly',
       priority: 1,
     },
     {
-      url: 'https://psnaidrop.com/claim',
+      url: `${siteUrl}/claim`,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 0.8,
     },
     {
-      url: 'https://psnaidrop.com/shop',
+      url: `${siteUrl}/shop`,
       lastModified: new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     },
      {
-      url: 'https://psnaidrop.com/qna',
+      url: `${siteUrl}/qna`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,
     },
     {
-      url: 'https://psnaidrop.com/roadmap',
+      url: `${siteUrl}/roadmap`,
       lastModified: new Date(),
       changeFrequency: 'monthly',
       priority: 0.5,

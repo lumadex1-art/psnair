@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,9 +15,13 @@ export function ReferralCode() {
   const { referralCode, user } = useAppContext();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [referralLink, setReferralLink] = useState('');
 
-  // Updated referral link format
-  const referralLink = referralCode ? `${window.location.origin}/?ref=${referralCode}` : '';
+  useEffect(() => {
+    if (typeof window !== 'undefined' && referralCode) {
+      setReferralLink(`${window.location.origin}/join?ref=${referralCode}`);
+    }
+  }, [referralCode]);
 
   const copyToClipboard = async () => {
     if (!referralLink) return;

@@ -8,13 +8,22 @@ import { UserAvatar } from '@/components/UserAvatar';
 import { Badge } from '@/components/ui/badge';
 import { Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from 'react';
 
 export default function ReferralsPage() {
   const { referralCode, referrals } = useAppContext();
   const { toast } = useToast();
-  const referralLink = `https://epsilondrop.app/join?ref=${referralCode}`;
+  const [referralLink, setReferralLink] = useState('');
+
+  useEffect(() => {
+    if (referralCode) {
+      setReferralLink(`${window.location.origin}/join?ref=${referralCode}`);
+    }
+  }, [referralCode]);
+
 
   const handleCopy = () => {
+    if (!referralLink) return;
     navigator.clipboard.writeText(referralLink);
     toast({
       title: 'Copied to clipboard!',
