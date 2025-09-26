@@ -18,36 +18,36 @@ export const SOLANA_CONFIG = {
   // Network settings (public)
   NETWORK: process.env.NEXT_PUBLIC_SOLANA_NETWORK || "mainnet-beta",
   
-  // RPC endpoints (public) - Updated untuk mengatasi 403 Forbidden
+  // RPC endpoints - Use environment variables for security
   RPC_ENDPOINTS: {
-    mainnet: "https://rpc-mainnet.solanatracker.io/?api_key=bb9aeffe-6d8f-4df1-a357-d0dfde36ee28",
+    "mainnet-beta": process.env.NEXT_PUBLIC_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
     devnet: "https://api.devnet.solana.com",
     testnet: "https://api.testnet.solana.com",
   },
 } as const;
 
 /**
- * Plan Pricing Configuration (Public)
+ * Plan Pricing Configuration (Public) - Synced dengan admin panel
  */
 export const PLAN_CONFIG = {
-  // Plan prices in SOL (public information) - Synced with backend
+  // Plan prices in SOL (public information) - Synced dengan backend
   PRICES: {
     Free: 0,
-    Starter: 0.0183486,    // ✅ TAMBAHKAN: Sesuai backend
+    Starter: 0.0183486,    // Sesuai dengan admin panel
     Silver: 0.0367,
     Gold: 0.0734,
     Platinum: 0.2064, 
     Diamond: 0.4128,
   },
   
-  // Plan features (public) - Synced with backend plans.ts
+  // Plan features (public) - Synced dengan backend plans.ts
   FEATURES: {
     Free: {
       maxDailyClaims: 1,
       rewardPerClaim: 1,
       features: ['1 EPSN per day', 'Basic Support'],
     },
-    Starter: {                // ✅ TAMBAHKAN: Sesuai backend
+    Starter: {                // Sesuai dengan admin panel
       maxDailyClaims: 1,
       rewardPerClaim: 5,
       features: ['5 EPSN per day', 'Priority Support'],
@@ -60,17 +60,17 @@ export const PLAN_CONFIG = {
     Gold: {
       maxDailyClaims: 1,
       rewardPerClaim: 20,
-      features: ['20 EPSN per day', 'Exclusive Tools Access', 'Master Badge'],
+      features: ['20 EPSN per day', 'Exclusive Tools Access', 'Gold Badge'],
     },
     Platinum: {
       maxDailyClaims: 1,
       rewardPerClaim: 50,
-      features: ['50 EPSN per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+      features: ['50 EPSN per day', 'All Exclusive Tools', 'Platinum Community Access', 'Highest Priority Support'],
     },
     Diamond: {
       maxDailyClaims: 1,
       rewardPerClaim: 100,
-      features: ['100 EPSN per day', 'All Exclusive Tools', 'Ultra Community Access', 'Highest Priority Support'],
+      features: ['100 EPSN per day', 'All Exclusive Tools', 'Diamond Community Access', 'VIP Support', 'Exclusive NFT Access'],
     },
   },
 } as const;

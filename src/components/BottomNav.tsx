@@ -1,17 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  Coins,
-  ShoppingBag,
-  User,
-  Rocket,
-  HelpCircle,
-  Shield,
-  CreditCard,
-} from 'lucide-react';
+import { Coins, ShoppingBag, Rocket, HelpCircle, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppContext } from '@/contexts/AppContext';
 
@@ -23,17 +14,13 @@ const baseNavItems = [
   { href: '/profile', icon: User, label: 'Profile' },
 ];
 
-const adminNavItem = { href: '/admin/payments', icon: Shield, label: 'Admin' };
-
-// UID Admin - Ganti dengan UID admin Anda yang sebenarnya
-const ADMIN_UID = "Gb1ga2KWyEPZbmEJVcrOhCp1ykH2";
+// Admin functionality moved to external admin panel
 
 export function BottomNav() {
   const pathname = usePathname();
   const { user } = useAppContext();
   
-  const isAdmin = user?.uid === ADMIN_UID;
-  // Sembunyikan tombol admin untuk sementara
+  // Using base navigation items only (admin moved to external panel)
   const navItems = baseNavItems;
 
 
@@ -45,7 +32,7 @@ export function BottomNav() {
       {/* Navigation content */}
       <nav className={cn(
         "relative grid h-20 items-center gap-1 px-2 py-2",
-        isAdmin ? 'grid-cols-5' : 'grid-cols-5' // Tetap 5 kolom
+        'grid-cols-5' // 5 navigation items
       )}>
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
@@ -56,7 +43,7 @@ export function BottomNav() {
               className={cn(
                 'relative flex flex-col items-center justify-center gap-1 rounded-xl p-1.5 transition-all duration-200 hover:scale-105',
                 isActive 
-                  ? item.href.startsWith('/admin') ? 'text-red-500' : 'text-primary' 
+                  ? 'text-primary' 
                   : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
               )}
             >
@@ -64,16 +51,14 @@ export function BottomNav() {
               {isActive && (
                 <div className={cn(
                   "absolute inset-0 rounded-xl border",
-                  item.href.startsWith('/admin') 
-                    ? 'bg-red-500/10 border-red-500/20' 
-                    : 'bg-primary/10 border-primary/20'
+                  'bg-primary/10 border-primary/20'
                 )} />
               )}
               
               {/* Icon with active state */}
               <div className={cn(
                 'relative flex items-center justify-center w-8 h-8 rounded-lg transition-all duration-200',
-                isActive && (item.href.startsWith('/admin') ? 'bg-red-500/15 shadow-lg shadow-red-500/25' : 'bg-primary/15 shadow-lg shadow-primary/25')
+                isActive && 'bg-primary/15 shadow-lg shadow-primary/25'
               )}>
                 <item.icon className={cn(
                   'transition-all duration-200',
@@ -84,7 +69,7 @@ export function BottomNav() {
                 {isActive && (
                   <div className={cn(
                     "absolute -top-1 -right-1 w-2 h-2 rounded-full animate-pulse",
-                    item.href.startsWith('/admin') ? 'bg-red-500' : 'bg-primary'
+                    'bg-primary'
                   )} />
                 )}
               </div>

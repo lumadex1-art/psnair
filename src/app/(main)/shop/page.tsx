@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useAppContext } from '@/contexts/AppContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Wallet, RefreshCw, TrendingUp, Loader2, Landmark, Copy, Hourglass, ShieldCheck } from 'lucide-react';
+import { CheckCircle, Wallet, RefreshCw, TrendingUp, Loader2, Landmark, Copy, Hourglass, ShieldCheck, Banknote } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
+import { collection, doc, setDoc } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -74,7 +74,7 @@ interface PurchaseConfirmationDetails {
 export default function ShopPage() {
   const { userTier, user } = useAppContext();
   const { toast } = useToast();
-  const { connected, publicKey, sendTransaction } = useWallet();
+  const { connected, publicKey, sendTransaction, signTransaction } = useWallet();
   const { connection } = useConnection();
   
   const [planPricing, setPlanPricing] = useState<Record<Tier, PlanPricing>>({} as Record<Tier, PlanPricing>);
@@ -82,7 +82,6 @@ export default function ShopPage() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [purchasingPlan, setPurchasingPlan] = useState<Tier | null>(null);
-  const [solBalance, setSolBalance] = useState<number | null>(null);
 
   // State for Bank Transfer Dialog
   const [isBankTransferOpen, setIsBankTransferOpen] = useState(false);
@@ -93,6 +92,7 @@ export default function ShopPage() {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [confirmationDetails, setConfirmationDetails] = useState<PurchaseConfirmationDetails | null>(null);
   const [confirmationInput, setConfirmationInput] = useState('');
+  const [solBalance, setSolBalance] = useState<number | null>(null);
 
 
   const loadPricing = async () => {
@@ -120,21 +120,16 @@ export default function ShopPage() {
   }, []);
 
   useEffect(() => {
-    if (connected && publicKey) {
-      connection.getBalance(publicKey).then(balance => {
-        setSolBalance(balance / LAMPORTS_PER_SOL);
-      });
-      // Optional: Listen for balance changes
-      const subscriptionId = connection.onAccountChange(publicKey, (accountInfo) => {
-        setSolBalance(accountInfo.lamports / LAMPORTS_PER_SOL);
-      });
-      return () => {
-        connection.removeAccountChangeListener(subscriptionId);
-      }
-    } else {
-      setSolBalance(null);
-    }
-  }, [connected, publicKey, connection]);
+    const getBalance = async () => {
+        if (connected && publicKey) {
+            const balance = await connection.getBalance(publicKey);
+            setSolBalance(balance / LAMPORTS_PER_SOL);
+        } else {
+            setSolBalance(null);
+        }
+    };
+    getBalance();
+}, [connected, publicKey, connection]);
 
   const openConfirmationDialog = (plan: Tier) => {
     const pricing = planPricing[plan];
@@ -152,70 +147,60 @@ export default function ShopPage() {
 };
 
 
-const handleSolanaPurchase = async (plan: Tier) => {
-  if (!connected || !publicKey || !user) {
-    toast({ variant: 'destructive', title: 'Wallet or User not connected' });
-    return;
-  }
-  
-  const priceInSol = PLAN_CONFIG.PRICES[plan];
-  if (priceInSol <= 0) {
-    toast({ variant: 'destructive', title: 'Invalid Plan Price' });
-    return;
-  }
+  const handleSolanaPurchase = async (plan: Tier) => {
+    if (!connected || !publicKey) {
+      toast({ variant: 'destructive', title: 'Wallet not connected' });
+      return;
+    }
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast({ variant: 'destructive', title: 'Not authenticated' });
+      return;
+    }
 
-  setPurchasingPlan(plan);
-  try {
-    const transactionId = doc(collection(db, 'transactions')).id;
-    const amountLamports = Math.ceil(priceInSol * LAMPORTS_PER_SOL);
+    setPurchasingPlan(plan);
+    try {
+       const transactionRef = doc(collection(db, 'transactions'));
+       const priceInSol = PLAN_CONFIG.PRICES[plan];
+       const amountLamports = Math.ceil(priceInSol * LAMPORTS_PER_SOL);
 
-    // 1. Create a "pending" transaction document in Firestore
-    await setDoc(doc(db, 'transactions', transactionId), {
-      uid: user.uid,
-      userName: user.name,
-      userEmail: user.email,
-      planId: plan,
-      amountLamports: amountLamports,
-      currency: 'SOL',
-      status: 'pending',
-      provider: 'solana',
-      createdAt: serverTimestamp(),
-      planUpgraded: false,
-    });
-
-    // 2. Create and send the on-chain transaction
-    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
-    const tx = new Transaction().add(
-      SystemProgram.transfer({
-        fromPubkey: publicKey,
-        toPubkey: MERCHANT_WALLET,
-        lamports: amountLamports,
-      })
-    );
-    tx.feePayer = publicKey;
-    tx.recentBlockhash = blockhash;
-
-    const signature = await sendTransaction(tx, connection);
-    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
-
-    // 3. Update the transaction document with the signature and 'paid' status
-    await setDoc(doc(db, 'transactions', transactionId), {
-      status: 'paid',
-      providerRef: signature,
-      confirmedAt: serverTimestamp(),
-    }, { merge: true });
-
-    toast({
-      title: 'Purchase Successful!',
-      description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.`,
-    });
-  } catch (err: any) {
-    toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
-  } finally {
-    setPurchasingPlan(null);
-    setIsConfirmationOpen(false);
-  }
-};
+       await setDoc(transactionRef, {
+            uid: currentUser.uid,
+            planId: plan,
+            status: 'pending',
+            provider: 'solana',
+            amountLamports,
+            currency: 'SOL',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        });
+      
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
+      const tx = new Transaction().add(SystemProgram.transfer({ fromPubkey: publicKey, toPubkey: MERCHANT_WALLET, lamports: amountLamports }));
+      tx.feePayer = publicKey;
+      tx.recentBlockhash = blockhash;
+      
+      const signature = await sendTransaction(tx, connection);
+      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
+      
+       await setDoc(doc(db, 'transactions', transactionRef.id), {
+          status: 'pending_approval',
+          providerRef: signature,
+          confirmedAt: new Date(),
+          updatedAt: new Date(),
+       }, { merge: true });
+      
+      toast({ 
+        title: 'Purchase Successful!', 
+        description: `Your ${plan} plan purchase is being processed. Please await admin approval for plan activation.` 
+      });
+    } catch (err: any) {
+      toast({ variant: 'destructive', title: 'Payment failed', description: err?.message || 'Please try again.' });
+    } finally {
+      setPurchasingPlan(null);
+      setIsConfirmationOpen(false);
+    }
+  };
 
   const handleBankTransfer = (plan: Tier) => {
     setBankTransferDetails({
@@ -279,6 +264,7 @@ const handleSolanaPurchase = async (plan: Tier) => {
 
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
+                   {plan.isPopular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"><Badge className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-bold px-4 py-1 shadow-lg animate-pulse">⭐ MOST POPULAR</Badge></div>}
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
@@ -341,6 +327,17 @@ const handleSolanaPurchase = async (plan: Tier) => {
                 </DialogHeader>
                 {confirmationDetails && (
                     <div className="space-y-4 py-4">
+                       <div className="p-3 bg-muted/50 rounded-lg border">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground flex items-center gap-2"><Banknote className="h-4 w-4" /> Your Balance</span>
+                                {solBalance !== null ? (
+                                    <span className="font-mono font-semibold">{solBalance.toFixed(4)} SOL</span>
+                                ) : (
+                                    <span className="text-xs text-muted-foreground">Loading...</span>
+                                )}
+                            </div>
+                        </div>
+
                         <div className="p-4 bg-primary/10 rounded-lg border border-primary/20 text-center">
                             <p className="text-sm font-medium text-primary">You are upgrading to</p>
                             <p className="font-bold text-xl">{confirmationDetails.plan}</p>
@@ -351,14 +348,6 @@ const handleSolanaPurchase = async (plan: Tier) => {
                                 (≈ {formatUsdAmount(confirmationDetails.priceUsd)})
                             </p>
                         </div>
-
-                         <div className="p-3 bg-muted rounded-lg border text-center">
-                            <p className="text-xs text-muted-foreground">Your Solana Balance</p>
-                            <p className="font-mono font-semibold text-base">
-                                {solBalance !== null ? `${formatSolAmount(solBalance)} SOL` : 'Loading...'}
-                            </p>
-                        </div>
-
 
                         <div className="space-y-2">
                             <Label htmlFor="confirmation-amount" className="text-sm font-medium">
@@ -518,5 +507,3 @@ const handleSolanaPurchase = async (plan: Tier) => {
     </>
   );
 }
-
-    
