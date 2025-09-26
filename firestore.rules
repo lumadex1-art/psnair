@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Aturan untuk koleksi 'users'
+    match /users/{userId} {
+      // Pengguna hanya bisa membaca dan menulis data mereka sendiri
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Izinkan pembuatan dokumen pengguna baru saat pendaftaran
+      allow create: if request.auth != null;
+    }
+    
+    // Aturan untuk koleksi 'claims'
+    match /claims/{claimId} {
+        // Pengguna hanya bisa membuat klaim untuk diri mereka sendiri
+        allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+        // Hanya izinkan baca untuk data klaim sendiri (opsional, untuk keamanan)
+        allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    
+    // Aturan untuk koleksi 'referrals'
+    match /referrals/{referralId} {
+        // Izinkan pembuatan saat ada referral baru
+        allow create: if request.auth != null;
+        // Izinkan pengguna membaca data referral jika mereka adalah referrer atau referee
+        allow read: if request.auth != null && (resource.data.referrerUid == request.auth.uid || resource.data.refereeUid == request.auth.uid);
+    }
+    
+    // BARU: Aturan untuk koleksi 'transactions'
+    match /transactions/{transactionId} {
+        // Izinkan pengguna membuat transaksi baru untuk diri mereka sendiri
+        allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+        // Izinkan pengguna memperbarui transaksi miliknya yang masih pending
+        allow update: if request.auth != null && resource.data.uid == request.auth.uid && resource.data.status == 'pending_approval';
+        // Izinkan pengguna membaca data transaksinya sendiri
+        allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+    
+    // Aturan default: Tolak semua akses lain untuk keamanan
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
