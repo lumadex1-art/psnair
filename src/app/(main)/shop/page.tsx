@@ -15,7 +15,7 @@ import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana
 import { getSolanaPrice, getPlanPricing, formatSolAmount, formatUsdAmount } from '@/lib/pricing';
 import Image from 'next/image';
 import { auth, db } from '@/lib/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -279,7 +279,6 @@ const handleSolanaPurchase = async (plan: Tier) => {
 
               return (
                 <Card key={plan.name} className={cn('relative border border-border/50 bg-gradient-to-br from-card/80 to-card/60 backdrop-blur-xl shadow-xl overflow-hidden transition-all duration-300 hover:shadow-2xl', isCurrentPlan && 'bg-gradient-to-br from-green-50/80 to-green-100/60 dark:from-green-900/20 dark:to-green-800/10 border-green-200 dark:border-green-800')}> 
-                  {plan.isPopular && <Badge className="absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-orange-500 text-white font-bold animate-pulse">MOST POPULAR</Badge>}
                   <CardHeader className="pb-4 pt-8">
                     <div className="flex items-start justify-between">
                       <div className="space-y-2">
