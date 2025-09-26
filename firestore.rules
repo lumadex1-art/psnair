@@ -26,14 +26,12 @@ service cloud.firestore {
         allow read: if request.auth != null && (resource.data.referrerUid == request.auth.uid || resource.data.refereeUid == request.auth.uid);
     }
     
-    // DIPERBAIKI: Aturan untuk koleksi 'transactions'
+    // BARU: Aturan untuk koleksi 'transactions'
     match /transactions/{transactionId} {
-        // Izinkan pengguna membuat transaksi baru untuk diri mereka sendiri
-        allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
-        // Izinkan pengguna memperbarui transaksi miliknya yang berstatus 'pending' (setelah pembayaran on-chain)
-        allow update: if request.auth != null && resource.data.uid == request.auth.uid && resource.data.status == 'pending';
-        // Izinkan pengguna membaca data transaksinya sendiri
-        allow read: if request.auth != null && resource.data.uid == request.auth.uid;
+        // Izinkan pengguna membuat dan memperbarui transaksi mereka sendiri
+        allow read, write: if request.auth != null && request.auth.uid == request.resource.data.uid;
     }
   }
 }
+
+    

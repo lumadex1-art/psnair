@@ -11,17 +11,11 @@ import { useWallet, useConnection } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { PublicKey, SystemProgram, Transaction } from '@solana/web3.js';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '@/lib/firebase';
+import { auth, functions } from '@/lib/firebase';
+import { httpsCallable } from 'firebase/functions';
 import Link from 'next/link';
+import { formatSolAmount } from '@/lib/pricing';
 
-// Import payment functions dan types
-import { 
-  createPaymentIntent, 
-  confirmPayment, 
-  MERCHANT_WALLET,
-  PaymentError,
-  formatSolAmount // Menggunakan formatSolAmount dari payment utils
-} from '@/lib/payment';
 
 interface PaymentDetails {
     uid: string;
@@ -63,21 +57,24 @@ export default function PayPage() {
 
         setStatus('processing');
         try {
-            // 1. Create payment intent menggunakan frontend logic (hanya planId)
-            const paymentIntent = await createPaymentIntent(details.planId);
-            
-            // Check if payment intent creation failed
-            if ('error' in paymentIntent) {
-                throw new Error(paymentIntent.error);
+            // Step 1: Create payment intent via Firebase Function
+            const createIntent = httpsCallable(functions, 'createPaymentIntent');
+            const intentResult = await createIntent({ planId: details.planId });
+            const intentData = intentResult.data as any;
+
+            if (!intentData.success) {
+                throw new Error(intentData.error || 'Failed to create payment intent.');
             }
+            
+            const { transactionId, amountLamports, merchantWallet } = intentData;
 
             // 2. Create Solana transaction
             const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('finalized');
             const tx = new Transaction().add(
                 SystemProgram.transfer({
                     fromPubkey: publicKey,
-                    toPubkey: MERCHANT_WALLET,
-                    lamports: details.amountLamports,
+                    toPubkey: new PublicKey(merchantWallet),
+                    lamports: amountLamports,
                 })
             );
             tx.feePayer = publicKey;
@@ -87,18 +84,19 @@ export default function PayPage() {
             const signature = await sendTransaction(tx, connection);
             await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed');
 
-            // 4. Confirm payment menggunakan frontend logic (transactionId dan signature)
-            const confirmResult = await confirmPayment(paymentIntent.transactionId, signature);
+            // 4. Confirm payment via Firebase Function
+            const confirmPaymentFunc = httpsCallable(functions, 'confirmPayment');
+            const confirmResult = await confirmPaymentFunc({ transactionId, signature });
+            const confirmData = confirmResult.data as any;
             
-            // Check if payment confirmation failed
-            if ('error' in confirmResult) {
-                throw new Error(confirmResult.error);
+            if (!confirmData.success) {
+                throw new Error(confirmData.error || 'Backend confirmation failed.');
             }
 
             setStatus('success');
             toast({ 
                 title: 'Payment Successful!', 
-                description: confirmResult.message 
+                description: confirmData.message 
             });
 
         } catch (err: any) {
@@ -117,7 +115,7 @@ export default function PayPage() {
     // Loading state
     if (loading || status === 'loading') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
                 <Card className="w-full max-w-md">
                     <CardContent className="flex items-center justify-center p-8">
                         <Loader2 className="h-8 w-8 animate-spin" />
@@ -131,7 +129,7 @@ export default function PayPage() {
     // Error state
     if (status === 'error') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
                         <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
@@ -139,8 +137,8 @@ export default function PayPage() {
                         <CardDescription>{error}</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Link href="/dashboard">
-                            <Button className="w-full">Return to Dashboard</Button>
+                        <Link href="/shop">
+                            <Button className="w-full">Return to Shop</Button>
                         </Link>
                     </CardContent>
                 </Card>
@@ -151,7 +149,7 @@ export default function PayPage() {
     // Success state
     if (status === 'success') {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+            <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
                 <Card className="w-full max-w-md">
                     <CardHeader className="text-center">
                         <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
@@ -161,8 +159,8 @@ export default function PayPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Link href="/dashboard">
-                            <Button className="w-full">Return to Dashboard</Button>
+                        <Link href="/claim">
+                            <Button className="w-full">Return to App</Button>
                         </Link>
                     </CardContent>
                 </Card>
@@ -172,10 +170,10 @@ export default function PayPage() {
 
     // Main payment UI
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
+        <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
             <Card className="w-full max-w-md">
                 <CardHeader className="text-center">
-                    <Wallet className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+                    <Wallet className="h-12 w-12 text-primary mx-auto mb-4" />
                     <CardTitle>Complete Payment</CardTitle>
                     <CardDescription>
                         Confirm your subscription payment
@@ -184,17 +182,17 @@ export default function PayPage() {
                 
                 <CardContent className="space-y-6">
                     {details && (
-                        <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                        <div className="bg-muted/50 p-4 rounded-lg space-y-2 border">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Plan:</span>
+                                <span className="text-muted-foreground">Plan:</span>
                                 <span className="font-medium">{details.planName}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Amount:</span>
-                                <span className="font-medium">{formatSolAmount(details.amountLamports)} SOL</span>
+                                <span className="text-muted-foreground">Amount:</span>
+                                <span className="font-medium">{formatSolAmount(details.amountLamports / LAMPORTS_PER_SOL)} SOL</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">User:</span>
+                                <span className="text-muted-foreground">User:</span>
                                 <span className="font-medium">{details.userName}</span>
                             </div>
                         </div>
@@ -202,21 +200,22 @@ export default function PayPage() {
 
                     {!user ? (
                         <div className="text-center">
-                            <p className="text-gray-600 mb-4">Please sign in to continue</p>
-                            <Link href="/auth">
+                            <p className="text-muted-foreground mb-4">Please sign in to continue</p>
+                            <Link href="/">
                                 <Button className="w-full">Sign In</Button>
                             </Link>
                         </div>
                     ) : !connected ? (
                         <div className="text-center">
-                            <p className="text-gray-600 mb-4">Connect your wallet to pay</p>
-                            <WalletMultiButton className="!w-full" />
+                            <p className="text-muted-foreground mb-4">Connect your wallet to pay</p>
+                            <WalletMultiButton className="!w-full !bg-primary hover:!bg-primary/90 !text-primary-foreground" />
                         </div>
                     ) : (
                         <Button 
                             onClick={handlePayment}
                             disabled={status === 'processing'}
                             className="w-full"
+                            size="lg"
                         >
                             {status === 'processing' ? (
                                 <>
@@ -233,3 +232,5 @@ export default function PayPage() {
         </div>
     );
 }
+
+    
