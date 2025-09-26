@@ -121,15 +121,8 @@ export async function getPlanPricing(usdPrice: number) {
  * Format SOL amount for display
  */
 export function formatSolAmount(amount: number): string {
-  if (amount < 0.001) {
-    return amount.toFixed(6);
-  } else if (amount < 0.01) {
-    return amount.toFixed(4);
-  } else if (amount < 1) {
-    return amount.toFixed(3);
-  } else {
-    return amount.toFixed(2);
-  }
+  // Always show high precision for accuracy
+  return amount.toFixed(7);
 }
 
 /**
