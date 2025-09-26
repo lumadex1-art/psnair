@@ -41,6 +41,14 @@ export default function ClaimPage() {
       minimumFractionDigits: 0,
     }).format(amount);
   };
+  
+  const formatUserName = (name: string): string => {
+    if (typeof name !== 'string') return 'User';
+    if (name.includes('@')) {
+      return name.split('@')[0];
+    }
+    return name;
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -112,7 +120,7 @@ export default function ClaimPage() {
               </div>
               <div>
                 <h2 className="font-bold text-xl text-foreground">
-                  {user.name}
+                  {formatUserName(user.name)}
                 </h2>
                 <p className="text-sm text-muted-foreground flex items-center gap-1">
                   <span>Welcome back!</span>
