@@ -27,10 +27,20 @@ const formatDate = (dateValue: any): string => {
     // Handle string/number
     return new Date(dateValue).toLocaleDateString();
   } catch (error) {
-    // Error handled silently for production
     return 'Invalid date';
   }
 };
+
+// Helper function untuk memformat nama
+const formatUserName = (name: string): string => {
+  if (typeof name !== 'string') return 'User';
+  // Jika nama adalah email, ambil bagian sebelum @
+  if (name.includes('@')) {
+    return name.split('@')[0];
+  }
+  // Jika bukan email, kembalikan nama apa adanya
+  return name;
+}
 
 interface ReferralHistoryItem {
   id: string;
@@ -76,7 +86,6 @@ export function ReferralHistory() {
         setMonthlyStats(data.monthlyStats);
       }
     } catch (error) {
-      // Error handled silently for production
     } finally {
       setLoading(false);
     }
@@ -170,7 +179,7 @@ export function ReferralHistory() {
                       </AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-medium text-foreground">{item.referredUser.name}</p>
+                      <p className="font-medium text-foreground">{formatUserName(item.referredUser.name)}</p>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-3 w-3" />
                         <span>
